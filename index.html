@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MockBall — Best Ball Mock Draft Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Core palette */
+  --ink:#0a0e17;--ink2:#111827;--ink3:#1c2333;--ink4:#252f42;
+  --surface:#1a2035;--surface2:#212840;--surface3:#2a3352;
+  --line:#2e3a52;--line2:#3d4f6e;
+  --text:#e8edf5;--text2:#8b9ab8;--text3:#4a5a7a;
+  --accent:#f0b429;--accent2:#e8a017;
+  /* Position colors */
+  --qb:#c084fc;--qbbg:rgba(192,132,252,.12);--qbbd:rgba(192,132,252,.4);
+  --rb:#34d399;--rbbg:rgba(52,211,153,.12);--rbbd:rgba(52,211,153,.4);
+  --wr:#fb923c;--wrbg:rgba(251,146,60,.12);--wrbd:rgba(251,146,60,.4);
+  --te:#60a5fa;--tebg:rgba(96,165,250,.12);--tebd:rgba(96,165,250,.4);
+  /* Grade colors */
+  --ga:#34d399;--gb:#60a5fa;--gc:#fb923c;--gd:#f87171;
+  /* Font */
+  --ff:'Inter',system-ui,sans-serif;--ffh:'Space Grotesk',system-ui,sans-serif;
+}
+html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--ff);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ═══ LAYOUT ═══════════════════════════════════════════════ */
+.app{display:grid;grid-template-rows:56px 1fr;height:100vh}
+.main{display:grid;grid-template-columns:306px 1fr 224px;height:100%;overflow:hidden}
+
+/* ═══ HEADER ════════════════════════════════════════════════ */
+.hdr{
+  background:var(--ink2);
+  border-bottom:1px solid var(--line);
+  padding:0 20px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 1px 12px rgba(0,0,0,.4);
+  position:relative;z-index:20;
+}
+.logo-mark{
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+}
+.logo-icon{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(240,180,41,.3);
+}
+.logo-text{font-family:var(--ffh);font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.logo-text span{color:var(--accent)}
+.hdivider{width:1px;height:22px;background:var(--line);flex-shrink:0}
+.hbadge{
+  background:var(--ink3);border:1px solid var(--line);border-radius:20px;
+  padding:3px 10px;font-size:10px;font-weight:500;color:var(--text2);white-space:nowrap;
+  letter-spacing:.2px;
+}
+.hbadge.hot{background:rgba(240,180,41,.1);border-color:rgba(240,180,41,.35);color:var(--accent)}
+.hnav{display:flex;gap:2px;margin-left:4px}
+.hnav-btn{
+  padding:5px 13px;border-radius:6px;border:none;background:transparent;
+  color:var(--text2);cursor:pointer;font-size:11px;font-weight:500;
+  font-family:var(--ff);transition:.15s;letter-spacing:.1px;
+}
+.hnav-btn:hover{background:var(--ink3);color:var(--text)}
+.hnav-btn.active{background:var(--surface);color:var(--text);font-weight:600}
+.hright{margin-left:auto;display:flex;gap:8px;align-items:center}
+.hpick{font-size:11px;color:var(--text2);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ═══ BUTTONS ════════════════════════════════════════════════ */
+.btn{
+  padding:5px 13px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--surface);
+  color:var(--text);cursor:pointer;font-size:11px;font-weight:500;
+  white-space:nowrap;user-select:none;transition:.12s;
+  font-family:var(--ff);letter-spacing:.1px;
+}
+.btn:hover{background:var(--surface2);border-color:var(--line2)}
+.btn:active{transform:scale(.98)}
+.btn-gold{background:linear-gradient(135deg,var(--accent2),var(--accent));border-color:transparent;color:#0a0e17;font-weight:600}
+.btn-gold:hover{filter:brightness(1.08)}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--line2);color:var(--text);background:var(--ink3)}
+.btn-danger{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35);color:#f87171}
+.btn-danger:hover{background:rgba(248,113,113,.18)}
+.btn-tog{font-size:10px;padding:4px 10px;border-radius:6px}
+.btn-tog.on{background:rgba(52,211,153,.1);border-color:var(--rbbd);color:var(--rb)}
+
+/* ═══ SETUP / LANDING PAGE ═══════════════════════════════════ */
+.setup{
+  display:flex;align-items:center;justify-content:center;
+  height:100%;overflow-y:auto;padding:24px;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(240,180,41,.06) 0%,transparent 60%),var(--ink);
+}
+.setup-inner{max-width:860px;width:100%}
+.setup-hero{text-align:center;margin-bottom:36px}
+.setup-hero h1{
+  font-family:var(--ffh);font-size:34px;font-weight:700;
+  letter-spacing:-1px;line-height:1.1;margin-bottom:10px;
+  background:linear-gradient(135deg,var(--text) 40%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.setup-hero p{color:var(--text2);font-size:14px;line-height:1.7;max-width:480px;margin:0 auto}
+.setup-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:30px}
+.setup-card{
+  background:var(--ink2);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;
+}
+.setup-card-icon{font-size:22px;margin-bottom:8px}
+.setup-card-label{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:3px;font-weight:600}
+.setup-card-val{font-size:14px;font-weight:700;color:var(--text)}
+.lineup-section{margin-bottom:28px}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:10px}
+.lineup-pills{display:flex;flex-wrap:wrap;gap:6px}
+.lp{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;letter-spacing:.2px}
+.lpQB{color:var(--qb);background:var(--qbbg);border-color:var(--qbbd)}
+.lpRB{color:var(--rb);background:var(--rbbg);border-color:var(--rbbd)}
+.lpWR{color:var(--wr);background:var(--wrbg);border-color:var(--wrbd)}
+.lpTE{color:var(--te);background:var(--tebg);border-color:var(--tebd)}
+.lpFL{color:var(--text2);background:var(--ink3);border-color:var(--line)}
+.slot-section{margin-bottom:28px}
+.slot-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-bottom:10px}
+.slot-btn{
+  padding:12px 4px;border-radius:10px;
+  border:1px solid var(--line);background:var(--ink2);
+  color:var(--text);cursor:pointer;font-size:16px;font-weight:700;
+  transition:.15s;text-align:center;font-family:var(--ffh);
+}
+.slot-btn:hover{background:rgba(240,180,41,.12);border-color:rgba(240,180,41,.5);color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(240,180,41,.15)}
+.slot-btn:active{transform:translateY(0)}
+.tip{font-size:11px;color:var(--text3);line-height:1.6;text-align:center}
+.tip b{color:var(--text2);font-weight:500}
+
+/* ═══ HISTORY / ANALYTICS PAGE ══════════════════════════════ */
+.history-page{height:100%;overflow-y:auto;padding:24px;background:var(--ink)}
+.history-page h2{font-family:var(--ffh);font-size:20px;font-weight:700;margin-bottom:4px}
+.history-page .page-sub{color:var(--text2);font-size:12px;margin-bottom:24px}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+.stat-card{
+  background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+}
+.stat-card-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:4px;font-weight:600}
+.stat-card-val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat-card-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.history-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:12px}
+.trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.trend-card{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.trend-card h4{font-size:12px;font-weight:600;margin-bottom:12px}
+.trend-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.trend-bar-label{font-size:11px;color:var(--text2);width:32px;flex-shrink:0}
+.trend-bar-track{flex:1;height:6px;background:var(--ink4);border-radius:3px;overflow:hidden}
+.trend-bar-fill{height:100%;border-radius:3px;transition:.4s}
+.trend-bar-pct{font-size:10px;color:var(--text2);width:28px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.draft-history-table{background:var(--ink2);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.dht-hdr{display:grid;grid-template-columns:48px 1fr 80px 80px 80px 100px;gap:0;background:var(--ink3);border-bottom:1px solid var(--line)}
+.dht-hdr span,.dht-row span{padding:9px 12px;font-size:10px}
+.dht-hdr span{font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
+.dht-row{display:grid;grid-template-columns:48px 1fr 80px 80px 80px 100px;border-bottom:1px solid var(--line);transition:.1s}
+.dht-row:last-child{border-bottom:none}
+.dht-row:hover{background:var(--ink3)}
+.dht-row span{font-size:11px;color:var(--text2);display:flex;align-items:center}
+.dht-row span:first-child{color:var(--text3);font-size:10px}
+.dht-row span.bold{color:var(--text);font-weight:500}
+.player-prefs{background:var(--ink2);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.pp-hdr{background:var(--ink3);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 60px 60px 80px 90px}
+.pp-hdr span,.pp-row span{padding:9px 12px;font-size:10px}
+.pp-hdr span{font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
+.pp-row{display:grid;grid-template-columns:1fr 60px 60px 80px 90px;border-bottom:1px solid var(--line);transition:.1s}
+.pp-row:last-child{border-bottom:none}
+.pp-row:hover{background:var(--ink3)}
+.pp-row span{font-size:11px;color:var(--text2);display:flex;align-items:center}
+.pp-row .pp-name{font-weight:500;color:var(--text)}
+.empty-history{text-align:center;padding:48px 24px;color:var(--text3)}
+.empty-history .ei{font-size:36px;margin-bottom:12px}
+.empty-history p{font-size:13px;line-height:1.6}
+.round-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;font-variant-numeric:tabular-nums}
+.grade-pill{padding:2px 7px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.2px}
+.gA{background:rgba(52,211,153,.15);color:var(--ga)}.gB{background:rgba(96,165,250,.15);color:var(--gb)}
+.gC{background:rgba(251,146,60,.15);color:var(--gc)}.gD{background:rgba(248,113,113,.15);color:var(--gd)}
+
+/* ═══ DRAFT ACTIVE — LEFT PANEL ══════════════════════════════ */
+.left{background:var(--ink2);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.pick-status{padding:12px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ps-eyebrow{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:3px;font-weight:600}
+.ps-main{font-size:15px;font-weight:700;font-family:var(--ffh)}
+.ps-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.ps-turn{background:rgba(52,211,153,.05);border-color:rgba(52,211,153,.2)}
+.po-row{display:flex;gap:2px;padding:6px 14px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
+.po{
+  min-width:22px;height:20px;border-radius:4px;
+  background:var(--ink3);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:700;flex-shrink:0;color:var(--text3);
+}
+.po-you{background:rgba(52,211,153,.15);border-color:var(--rbbd);color:#34d399}
+.po-cur{background:rgba(96,165,250,.15);border-color:var(--tebd);color:#60a5fa}
+.ctrl-row{display:flex;align-items:center;gap:6px;padding:6px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ctrl-row input{
+  flex:1;background:var(--ink3);border:1px solid var(--line);border-radius:7px;
+  padding:5px 10px;color:var(--text);font-size:11px;outline:none;font-family:var(--ff);
+}
+.ctrl-row input:focus{border-color:var(--tebd)}
+.ctrl-row input::placeholder{color:var(--text3)}
+.ftabs{display:flex;gap:3px;padding:5px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ftab{
+  padding:3px 9px;border-radius:20px;border:1px solid transparent;
+  background:transparent;color:var(--text3);cursor:pointer;
+  font-size:10px;font-weight:500;font-family:var(--ff);transition:.1s;
+}
+.ftab:hover{color:var(--text2);background:var(--ink3)}
+.ftab.on{border-color:currentColor;background:var(--ink3)}
+.ftab.ALL.on{color:var(--text);border-color:var(--line2)}
+.ftab.QB.on{color:var(--qb);border-color:var(--qbbd);background:var(--qbbg)}
+.ftab.RB.on{color:var(--rb);border-color:var(--rbbd);background:var(--rbbg)}
+.ftab.WR.on{color:var(--wr);border-color:var(--wrbd);background:var(--wrbg)}
+.ftab.TE.on{color:var(--te);border-color:var(--tebd);background:var(--tebg)}
+.plist{overflow-y:auto;flex:1}
+.prow{
+  display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border-bottom:1px solid var(--line);cursor:pointer;transition:background .08s;user-select:none;
+}
+.prow:hover{background:var(--ink3)}
+.prow.gone{display:none}
+.prow.gone.vis{display:flex;opacity:.2;pointer-events:none}
+.padp{font-size:10px;color:var(--text3);width:28px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.pbadge{width:26px;text-align:center;flex-shrink:0;border-radius:4px;padding:1px 0;font-size:9px;font-weight:700}
+.QB{color:var(--qb);background:var(--qbbg)}.RB{color:var(--rb);background:var(--rbbg)}.WR{color:var(--wr);background:var(--wrbg)}.TE{color:var(--te);background:var(--tebg)}
+.pinfo{flex:1;min-width:0}
+.pname{font-weight:500;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.pteam{font-size:10px;color:var(--text3)}
+.grade{padding:1px 5px;border-radius:8px;font-size:9px;font-weight:700;flex-shrink:0}
+.gA{background:rgba(52,211,153,.15);color:var(--ga)}.gB{background:rgba(96,165,250,.15);color:var(--gb)}.gC{background:rgba(251,146,60,.15);color:var(--gc)}.gD{background:rgba(248,113,113,.15);color:var(--gd)}
+.pproj{font-size:10px;color:var(--text3);width:28px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.stk{font-size:9px;color:var(--wr);background:rgba(251,146,60,.12);padding:1px 4px;border-radius:3px;flex-shrink:0;font-weight:600}
+
+/* ═══ CENTER BOARD ═══════════════════════════════════════════ */
+.center{background:var(--ink);display:flex;flex-direction:column;overflow:hidden}
+.center-hdr{
+  padding:9px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;background:var(--ink2);
+}
+.ai-bar{
+  display:flex;align-items:center;gap:8px;padding:5px 14px;
+  background:rgba(96,165,250,.06);border-bottom:1px solid var(--line);
+  font-size:10px;color:var(--te);flex-shrink:0;
+}
+.dots span{animation:blink 1.2s infinite;opacity:0}
+.dots span:nth-child(2){animation-delay:.25s}.dots span:nth-child(3){animation-delay:.5s}
+@keyframes blink{0%,80%,100%{opacity:0}35%{opacity:1}}
+.board-wrap{overflow:auto;flex:1}
+.board{display:grid;grid-template-columns:repeat(12,minmax(78px,1fr));min-width:936px}
+.col-hdr{
+  position:sticky;top:0;z-index:10;
+  padding:8px 6px 7px;text-align:center;
+  font-size:9px;font-weight:600;color:var(--text3);
+  background:var(--ink2);border-bottom:2px solid var(--line);border-right:1px solid var(--line);
+  text-transform:uppercase;letter-spacing:.5px;line-height:1.3;
+}
+.col-hdr.you{background:rgba(52,211,153,.07);border-bottom-color:var(--rbbd);color:#34d399}
+.col-hdr .team-name{font-size:8px;color:var(--text3);margin-top:1px;font-style:italic;text-transform:none;letter-spacing:0;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col-hdr.you .team-name{color:rgba(52,211,153,.6)}
+.bcell{
+  border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  padding:5px 6px;min-height:58px;background:var(--ink2);position:relative;
+  transition:.1s;
+}
+.bcell.empty{background:var(--ink);opacity:.3}
+.bcell.onclock{animation:cpulse 1.7s ease-in-out infinite}
+@keyframes cpulse{
+  0%,100%{background:rgba(96,165,250,.08);box-shadow:inset 0 0 0 1px rgba(96,165,250,.4)}
+  50%{background:rgba(52,211,153,.06);box-shadow:inset 0 0 0 1px rgba(52,211,153,.4)}
+}
+.bcell.mine{background:rgba(52,211,153,.05);border-right-color:rgba(52,211,153,.25)}
+.cell-rd{font-size:8px;color:var(--text3);margin-bottom:2px;font-variant-numeric:tabular-nums}
+.cell-name{font-size:10px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.cell-badge{display:inline-block;padding:1px 4px;border-radius:3px;font-size:8px;font-weight:700;margin-top:2px}
+.cell-adp{font-size:8px;color:var(--text3);margin-top:1px;font-variant-numeric:tabular-nums}
+
+/* ═══ RIGHT ROSTER ═══════════════════════════════════════════ */
+.right{background:var(--ink2);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.rp-hdr{padding:9px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.rp-hdr-title{font-size:12px;font-weight:700;font-family:var(--ffh)}
+.rp-body{overflow-y:auto;flex:1;padding:5px 8px}
+.rslot{
+  display:flex;align-items:center;gap:5px;padding:3px 6px;
+  border-radius:6px;margin-bottom:2px;border:1px solid var(--line);
+  background:var(--ink3);min-height:28px;transition:.1s;
+}
+.rslot.bench{background:var(--ink);border-color:var(--line);}
+.rslot.starter{border-left:2px solid var(--accent);padding-left:5px;}
+.rslot-divider{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--text3);padding:6px 6px 3px;margin-top:2px;}
+.rslot-pos{font-size:9px;font-weight:700;width:28px;text-align:center;padding:2px 0;border-radius:4px;flex-shrink:0}
+.rslot-name{font-size:10px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.rslot-team{font-size:9px;color:var(--text3)}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:8px;border-top:1px solid var(--line);flex-shrink:0}
+.sc{background:var(--ink3);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+.sc-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;font-weight:600}
+.sc-v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.build-pills{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+.build-pill{font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px}
+
+/* ═══ POST-DRAFT ANALYSIS PANEL ══════════════════════════════ */
+.analysis-panel{
+  position:absolute;inset:0;z-index:50;
+  background:rgba(10,14,23,.85);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;display:none;
+}
+.analysis-card{
+  background:var(--ink2);border:1px solid var(--line);border-radius:16px;
+  padding:28px;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;
+  position:relative;
+}
+.analysis-card h3{font-family:var(--ffh);font-size:18px;font-weight:700;margin-bottom:4px}
+.analysis-close{position:absolute;top:16px;right:16px}
+.grade-ring{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:60px;height:60px;border-radius:50%;
+  font-family:var(--ffh);font-size:24px;font-weight:700;
+  border:3px solid;margin-bottom:12px;
+}
+.analysis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.ag-card{background:var(--ink3);border-radius:10px;padding:12px 14px;border:1px solid var(--line)}
+.ag-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:3px;font-weight:600}
+.ag-val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.ag-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.pick-log{background:var(--ink3);border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.pick-log-hdr{display:grid;grid-template-columns:36px 50px 1fr 70px 70px;background:var(--ink4);border-bottom:1px solid var(--line)}
+.pick-log-hdr span,.pick-log-row span{padding:7px 8px;font-size:9px}
+.pick-log-hdr span{text-transform:uppercase;letter-spacing:.5px;font-weight:600;color:var(--text3)}
+.pick-log-row{display:grid;grid-template-columns:36px 50px 1fr 70px 70px;border-bottom:1px solid var(--line)}
+.pick-log-row:last-child{border-bottom:none}
+.pick-log-row span{font-size:10px;color:var(--text2);display:flex;align-items:center}
+.pick-log-row span.bold{color:var(--text);font-weight:500}
+
+/* ═══ TOAST ══════════════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:var(--ink2);border:1px solid var(--line2);border-radius:10px;
+  padding:8px 16px;font-size:11px;opacity:0;
+  transition:opacity .2s,transform .2s;pointer-events:none;z-index:999;
+  white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ═══ SCROLLBAR ══════════════════════════════════════════════ */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--ink4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--line2)}
+</style>
+</head>
+<body>
+<div class="app" id="app-root">
+<div class="hdr">
+  <div class="logo-mark">
+    <div class="logo-icon">🏈</div>
+    <span class="logo-text">Mock<span>Ball</span></span>
+  </div>
+  <div class="hdivider"></div>
+  <span class="hbadge hot">Underdog Big Board 2026</span>
+  <span class="hbadge">20 Rounds · 12 Teams · Half-PPR</span>
+  <div class="hnav" id="hnav" style="display:none">
+    <button class="hnav-btn active" id="nav-draft" onclick="navTo('draft')">⚑ Draft</button>
+    <button class="hnav-btn" id="nav-history" onclick="navTo('history')">📊 My History</button>
+  </div>
+  <div class="hright">
+    <span class="hpick" id="hpick"></span>
+    <button class="btn btn-tog" id="tog-btn" style="display:none" onclick="toggleDrafted()">👁 Drafted</button>
+    <button class="btn btn-ghost" id="auto-btn" style="display:none" onclick="doAuto()">⚡ Auto Pick</button>
+    <button class="btn btn-danger" id="reset-btn" style="display:none" onclick="resetDraft()">↺ New Draft</button>
+  </div>
+</div>
+<div id="view" style="height:100%;overflow:hidden;position:relative"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS ─────────────────────────────────────────────────
+const ROUNDS=20,TEAMS=12,TOTAL=240;
+const CAPS={QB:5,RB:8,WR:10,TE:6}; // Big Board: bench is open, so allow real variety
+const SLOTS=[
+  // Starting lineup (auto-set weekly by Underdog)
+  {l:'QB', p:['QB'],  start:true},
+  {l:'RB', p:['RB'],  start:true},
+  {l:'RB', p:['RB'],  start:true},
+  {l:'WR', p:['WR'],  start:true},
+  {l:'WR', p:['WR'],  start:true},
+  {l:'WR', p:['WR'],  start:true},
+  {l:'TE', p:['TE'],  start:true},
+  {l:'FLEX',p:['RB','WR','TE'], start:true},
+  // Bench — accepts any skill position (true best ball: 4QB/6RB/6WR/4TE all valid)
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']},
+  {l:'BE', p:['QB','RB','WR','TE']}
+];
+
+// Funny AI team names — fantasy/football puns
+const AI_NAMES = [
+  "Bijan & the Jets","Kelce My Heart","Mahomies Forever",
+  "Kiss My Stafford","Jalen So Good","Run CMC","Achane of Fools",
+  "The Brock Stars","It's Giving Gibbs","Hurts So Good",
+  "No Ragrets Wilson","Lamar is Coming"
+];
+
+// Snake draft math
+function teamAt(n){const r=Math.floor(n/TEAMS),pos=n%TEAMS;return r%2===0?pos:(TEAMS-1-pos);}
+function roundOf(n){return Math.floor(n/TEAMS)+1;}
+
+// ── PLAYER DATA ───────────────────────────────────────────────
+const P=[
+{"id":"x001","name":"Bijan Robinson","pos":"RB","team":"Atlanta Falcons","adp":1.4,"proj":294.9,"pr":"RB1"},
+{"id":"x002","name":"Jahmyr Gibbs","pos":"RB","team":"Detroit Lions","adp":1.7,"proj":277.9,"pr":"RB2"},
+{"id":"x003","name":"Ja'Marr Chase","pos":"WR","team":"Cincinnati Bengals","adp":3.2,"proj":250.6,"pr":"WR1"},
+{"id":"x004","name":"Puka Nacua","pos":"WR","team":"Los Angeles Rams","adp":4.2,"proj":278.0,"pr":"WR2"},
+{"id":"x005","name":"Jaxon Smith-Njigba","pos":"WR","team":"Seattle Seahawks","adp":5.2,"proj":235.1,"pr":"WR3"},
+{"id":"x006","name":"Jonathan Taylor","pos":"RB","team":"Indianapolis Colts","adp":6.3,"proj":256.3,"pr":"RB3"},
+{"id":"x007","name":"Christian McCaffrey","pos":"RB","team":"San Francisco 49ers","adp":7.3,"proj":260.0,"pr":"RB4"},
+{"id":"x008","name":"CeeDee Lamb","pos":"WR","team":"Dallas Cowboys","adp":8.6,"proj":222.5,"pr":"WR4"},
+{"id":"x009","name":"Amon-Ra St. Brown","pos":"WR","team":"Detroit Lions","adp":8.9,"proj":227.5,"pr":"WR5"},
+{"id":"x010","name":"Justin Jefferson","pos":"WR","team":"Minnesota Vikings","adp":10.0,"proj":203.6,"pr":"WR6"},
+{"id":"x011","name":"James Cook","pos":"RB","team":"Buffalo Bills","adp":11.1,"proj":247.3,"pr":"RB5"},
+{"id":"x012","name":"Ashton Jeanty","pos":"RB","team":"Las Vegas Raiders","adp":11.5,"proj":238.5,"pr":"RB6"},
+{"id":"x013","name":"De'Von Achane","pos":"RB","team":"Miami Dolphins","adp":13.8,"proj":237.0,"pr":"RB7"},
+{"id":"x014","name":"Saquon Barkley","pos":"RB","team":"Philadelphia Eagles","adp":15.3,"proj":226.0,"pr":"RB8"},
+{"id":"x015","name":"Omarion Hampton","pos":"RB","team":"Los Angeles Chargers","adp":15.7,"proj":221.7,"pr":"RB9"},
+{"id":"x016","name":"Kenneth Walker III","pos":"RB","team":"Kansas City Chiefs","adp":16.3,"proj":212.0,"pr":"RB10"},
+{"id":"x017","name":"Jeremiyah Love","pos":"RB","team":"FA","adp":16.5,"proj":0.0,"pr":"RB11"},
+{"id":"x018","name":"Malik Nabers","pos":"WR","team":"New York Giants","adp":18.4,"proj":200.4,"pr":"WR7"},
+{"id":"x019","name":"Trey McBride","pos":"TE","team":"Arizona Cardinals","adp":19.3,"proj":191.4,"pr":"TE1"},
+{"id":"x020","name":"Drake London","pos":"WR","team":"Atlanta Falcons","adp":20.1,"proj":195.7,"pr":"WR8"},
+{"id":"x021","name":"Derrick Henry","pos":"RB","team":"Baltimore Ravens","adp":20.5,"proj":238.2,"pr":"RB12"},
+{"id":"x022","name":"Chase Brown","pos":"RB","team":"Cincinnati Bengals","adp":22.2,"proj":209.8,"pr":"RB13"},
+{"id":"x023","name":"Brock Bowers","pos":"TE","team":"Las Vegas Raiders","adp":23.5,"proj":188.0,"pr":"TE2"},
+{"id":"x024","name":"George Pickens","pos":"WR","team":"Dallas Cowboys","adp":24.3,"proj":195.9,"pr":"WR9"},
+{"id":"x025","name":"Nico Collins","pos":"WR","team":"Houston Texans","adp":24.7,"proj":196.0,"pr":"WR10"},
+{"id":"x026","name":"Josh Jacobs","pos":"RB","team":"Green Bay Packers","adp":27.0,"proj":201.3,"pr":"RB14"},
+{"id":"x027","name":"Rashee Rice","pos":"WR","team":"Kansas City Chiefs","adp":27.2,"proj":199.3,"pr":"WR11"},
+{"id":"x028","name":"Chris Olave","pos":"WR","team":"New Orleans Saints","adp":28.1,"proj":192.1,"pr":"WR12"},
+{"id":"x029","name":"Josh Allen","pos":"QB","team":"Buffalo Bills","adp":29.5,"proj":363.5,"pr":"QB1"},
+{"id":"x030","name":"A.J. Brown","pos":"WR","team":"Philadelphia Eagles","adp":29.6,"proj":186.6,"pr":"WR13"},
+{"id":"x031","name":"Travis Etienne Jr.","pos":"RB","team":"New Orleans Saints","adp":30.5,"proj":195.9,"pr":"RB15"},
+{"id":"x032","name":"Tetairoa McMillan","pos":"WR","team":"Carolina Panthers","adp":32.8,"proj":176.9,"pr":"WR14"},
+{"id":"x033","name":"Breece Hall","pos":"RB","team":"New York Jets","adp":32.8,"proj":205.6,"pr":"RB16"},
+{"id":"x034","name":"Tee Higgins","pos":"WR","team":"Cincinnati Bengals","adp":33.9,"proj":172.6,"pr":"WR15"},
+{"id":"x035","name":"Kyren Williams","pos":"RB","team":"Los Angeles Rams","adp":35.2,"proj":193.3,"pr":"RB17"},
+{"id":"x036","name":"Garrett Wilson","pos":"WR","team":"New York Jets","adp":36.0,"proj":190.1,"pr":"WR16"},
+{"id":"x037","name":"Emeka Egbuka","pos":"WR","team":"Tampa Bay Buccaneers","adp":38.6,"proj":163.6,"pr":"WR17"},
+{"id":"x038","name":"Bucky Irving","pos":"RB","team":"Tampa Bay Buccaneers","adp":39.2,"proj":183.3,"pr":"RB18"},
+{"id":"x039","name":"Ladd McConkey","pos":"WR","team":"Los Angeles Chargers","adp":39.4,"proj":166.6,"pr":"WR18"},
+{"id":"x040","name":"Javonte Williams","pos":"RB","team":"Dallas Cowboys","adp":40.2,"proj":187.8,"pr":"RB19"},
+{"id":"x041","name":"Zay Flowers","pos":"WR","team":"Baltimore Ravens","adp":40.5,"proj":184.4,"pr":"WR19"},
+{"id":"x042","name":"DeVonta Smith","pos":"WR","team":"Philadelphia Eagles","adp":41.1,"proj":170.4,"pr":"WR20"},
+{"id":"x043","name":"Luther Burden","pos":"WR","team":"Chicago Bears","adp":42.1,"proj":166.7,"pr":"WR21"},
+{"id":"x044","name":"Jameson Williams","pos":"WR","team":"Detroit Lions","adp":45.7,"proj":176.2,"pr":"WR22"},
+{"id":"x045","name":"Colston Loveland","pos":"TE","team":"Chicago Bears","adp":45.8,"proj":157.1,"pr":"TE3"},
+{"id":"x046","name":"TreVeyon Henderson","pos":"RB","team":"New England Patriots","adp":47.3,"proj":164.0,"pr":"RB20"},
+{"id":"x047","name":"Terry McLaurin","pos":"WR","team":"Washington Commanders","adp":47.4,"proj":165.6,"pr":"WR23"},
+{"id":"x048","name":"Mike Evans","pos":"WR","team":"San Francisco 49ers","adp":48.0,"proj":171.0,"pr":"WR24"},
+{"id":"x049","name":"Jaylen Waddle","pos":"WR","team":"Denver Broncos","adp":48.3,"proj":155.0,"pr":"WR25"},
+{"id":"x050","name":"Davante Adams","pos":"WR","team":"Los Angeles Rams","adp":50.7,"proj":155.7,"pr":"WR26"},
+{"id":"x051","name":"Lamar Jackson","pos":"QB","team":"Baltimore Ravens","adp":51.2,"proj":323.3,"pr":"QB2"},
+{"id":"x052","name":"D.J. Moore","pos":"WR","team":"Buffalo Bills","adp":51.9,"proj":149.5,"pr":"WR27"},
+{"id":"x053","name":"Rome Odunze","pos":"WR","team":"Chicago Bears","adp":53.5,"proj":156.7,"pr":"WR28"},
+{"id":"x054","name":"Quinshon Judkins","pos":"RB","team":"Cleveland Browns","adp":53.9,"proj":169.8,"pr":"RB21"},
+{"id":"x055","name":"Bhayshul Tuten","pos":"RB","team":"Jacksonville Jaguars","adp":54.8,"proj":154.9,"pr":"RB22"},
+{"id":"x056","name":"David Montgomery","pos":"RB","team":"Houston Texans","adp":55.6,"proj":175.8,"pr":"RB23"},
+{"id":"x057","name":"Cam Skattebo","pos":"RB","team":"New York Giants","adp":57.6,"proj":170.7,"pr":"RB24"},
+{"id":"x058","name":"Carnell Tate","pos":"WR","team":"FA","adp":58.3,"proj":0.0,"pr":"WR29"},
+{"id":"x059","name":"Christian Watson","pos":"WR","team":"Green Bay Packers","adp":59.0,"proj":153.8,"pr":"WR30"},
+{"id":"x060","name":"D'Andre Swift","pos":"RB","team":"Chicago Bears","adp":59.9,"proj":177.4,"pr":"RB25"},
+{"id":"x061","name":"Brian Thomas","pos":"WR","team":"Jacksonville Jaguars","adp":61.9,"proj":152.9,"pr":"WR31"},
+{"id":"x062","name":"Jayden Daniels","pos":"QB","team":"Washington Commanders","adp":62.5,"proj":317.7,"pr":"QB3"},
+{"id":"x063","name":"Joe Burrow","pos":"QB","team":"Cincinnati Bengals","adp":63.8,"proj":308.1,"pr":"QB4"},
+{"id":"x064","name":"Makai Lemon","pos":"WR","team":"FA","adp":64.6,"proj":0.0,"pr":"WR32"},
+{"id":"x065","name":"Marvin Harrison","pos":"WR","team":"Arizona Cardinals","adp":65.6,"proj":145.7,"pr":"WR33"},
+{"id":"x066","name":"RJ Harvey","pos":"RB","team":"Denver Broncos","adp":66.9,"proj":141.8,"pr":"RB26"},
+{"id":"x067","name":"Tyler Warren","pos":"TE","team":"Indianapolis Colts","adp":67.8,"proj":140.0,"pr":"TE4"},
+{"id":"x068","name":"Alec Pierce","pos":"WR","team":"Indianapolis Colts","adp":67.8,"proj":159.4,"pr":"WR34"},
+{"id":"x069","name":"Caleb Williams","pos":"QB","team":"Chicago Bears","adp":68.8,"proj":303.3,"pr":"QB5"},
+{"id":"x070","name":"Jalen Hurts","pos":"QB","team":"Philadelphia Eagles","adp":69.3,"proj":314.5,"pr":"QB6"},
+{"id":"x071","name":"Drake Maye","pos":"QB","team":"New England Patriots","adp":70.9,"proj":315.6,"pr":"QB7"},
+{"id":"x072","name":"Jordyn Tyson","pos":"WR","team":"FA","adp":71.8,"proj":0.0,"pr":"WR35"},
+{"id":"x073","name":"Parker Washington","pos":"WR","team":"Jacksonville Jaguars","adp":72.6,"proj":156.2,"pr":"WR36"},
+{"id":"x074","name":"Chuba Hubbard","pos":"RB","team":"Carolina Panthers","adp":73.3,"proj":161.1,"pr":"RB27"},
+{"id":"x075","name":"Courtland Sutton","pos":"WR","team":"Denver Broncos","adp":76.3,"proj":139.5,"pr":"WR37"},
+{"id":"x076","name":"Rhamondre Stevenson","pos":"RB","team":"New England Patriots","adp":77.8,"proj":159.9,"pr":"RB28"},
+{"id":"x077","name":"Michael Wilson","pos":"WR","team":"Arizona Cardinals","adp":78.0,"proj":139.9,"pr":"WR39"},
+{"id":"x078","name":"DK Metcalf","pos":"WR","team":"Pittsburgh Steelers","adp":78.0,"proj":152.3,"pr":"WR38"},
+{"id":"x079","name":"Jaylen Warren","pos":"RB","team":"Pittsburgh Steelers","adp":78.8,"proj":161.9,"pr":"RB29"},
+{"id":"x080","name":"Dak Prescott","pos":"QB","team":"Dallas Cowboys","adp":79.3,"proj":309.9,"pr":"QB8"},
+{"id":"x081","name":"Harold Fannin","pos":"TE","team":"Cleveland Browns","adp":80.8,"proj":137.9,"pr":"TE5"},
+{"id":"x082","name":"Justin Herbert","pos":"QB","team":"Los Angeles Chargers","adp":82.6,"proj":307.3,"pr":"QB9"},
+{"id":"x083","name":"Trevor Lawrence","pos":"QB","team":"Jacksonville Jaguars","adp":83.4,"proj":306.2,"pr":"QB10"},
+{"id":"x084","name":"Jordan Addison","pos":"WR","team":"Minnesota Vikings","adp":84.0,"proj":139.6,"pr":"WR40"},
+{"id":"x085","name":"Jaxson Dart","pos":"QB","team":"New York Giants","adp":86.4,"proj":304.5,"pr":"QB11"},
+{"id":"x086","name":"Ricky Pearsall","pos":"WR","team":"San Francisco 49ers","adp":86.9,"proj":143.3,"pr":"WR41"},
+{"id":"x087","name":"Tyler Allgeier","pos":"RB","team":"Arizona Cardinals","adp":87.3,"proj":137.8,"pr":"RB30"},
+{"id":"x088","name":"Jakobi Meyers","pos":"WR","team":"Jacksonville Jaguars","adp":88.8,"proj":138.0,"pr":"WR42"},
+{"id":"x089","name":"Tucker Kraft","pos":"TE","team":"Green Bay Packers","adp":88.9,"proj":134.8,"pr":"TE6"},
+{"id":"x090","name":"Patrick Mahomes","pos":"QB","team":"Kansas City Chiefs","adp":90.2,"proj":290.0,"pr":"QB12"},
+{"id":"x091","name":"Rico Dowdle","pos":"RB","team":"Pittsburgh Steelers","adp":90.7,"proj":129.5,"pr":"RB31"},
+{"id":"x092","name":"Chris Godwin","pos":"WR","team":"Tampa Bay Buccaneers","adp":91.4,"proj":139.6,"pr":"WR43"},
+{"id":"x093","name":"Romeo Doubs","pos":"WR","team":"New England Patriots","adp":93.9,"proj":144.1,"pr":"WR44"},
+{"id":"x094","name":"Kyle Monangai","pos":"RB","team":"Chicago Bears","adp":94.1,"proj":143.5,"pr":"RB32"},
+{"id":"x095","name":"Bo Nix","pos":"QB","team":"Denver Broncos","adp":95.5,"proj":299.7,"pr":"QB14"},
+{"id":"x096","name":"Brock Purdy","pos":"QB","team":"San Francisco 49ers","adp":95.5,"proj":297.7,"pr":"QB13"},
+{"id":"x097","name":"J.K. Dobbins","pos":"RB","team":"Denver Broncos","adp":97.9,"proj":147.2,"pr":"RB33"},
+{"id":"x098","name":"Michael Pittman Jr.","pos":"WR","team":"Pittsburgh Steelers","adp":99.7,"proj":133.5,"pr":"WR45"},
+{"id":"x099","name":"Kyle Pitts","pos":"TE","team":"Atlanta Falcons","adp":99.9,"proj":136.6,"pr":"TE7"},
+{"id":"x100","name":"Blake Corum","pos":"RB","team":"Los Angeles Rams","adp":100.2,"proj":128.4,"pr":"RB34"},
+{"id":"x101","name":"Wan'Dale Robinson","pos":"WR","team":"Tennessee Titans","adp":101.7,"proj":132.6,"pr":"WR46"},
+{"id":"x102","name":"Sam LaPorta","pos":"TE","team":"Detroit Lions","adp":101.8,"proj":139.7,"pr":"TE8"},
+{"id":"x103","name":"Matthew Stafford","pos":"QB","team":"Los Angeles Rams","adp":102.9,"proj":280.2,"pr":"QB15"},
+{"id":"x104","name":"Quentin Johnston","pos":"WR","team":"Los Angeles Chargers","adp":104.1,"proj":134.9,"pr":"WR47"},
+{"id":"x105","name":"Jared Goff","pos":"QB","team":"Detroit Lions","adp":104.4,"proj":285.5,"pr":"QB16"},
+{"id":"x106","name":"Kyler Murray","pos":"QB","team":"Minnesota Vikings","adp":104.8,"proj":245.0,"pr":"QB17"},
+{"id":"x107","name":"Jayden Reed","pos":"WR","team":"Green Bay Packers","adp":105.5,"proj":140.4,"pr":"WR48"},
+{"id":"x108","name":"Tony Pollard","pos":"RB","team":"Tennessee Titans","adp":107.8,"proj":142.9,"pr":"RB35"},
+{"id":"x109","name":"Jordan Love","pos":"QB","team":"Green Bay Packers","adp":108.4,"proj":286.5,"pr":"QB18"},
+{"id":"x110","name":"Jadarian Price","pos":"RB","team":"FA","adp":108.9,"proj":0.0,"pr":"RB36"},
+{"id":"x111","name":"Xavier Worthy","pos":"WR","team":"Kansas City Chiefs","adp":111.3,"proj":126.4,"pr":"WR49"},
+{"id":"x112","name":"Baker Mayfield","pos":"QB","team":"Tampa Bay Buccaneers","adp":111.4,"proj":280.9,"pr":"QB19"},
+{"id":"x113","name":"Oronde Gadsden","pos":"TE","team":"Los Angeles Chargers","adp":113.2,"proj":127.3,"pr":"TE9"},
+{"id":"x114","name":"KC Concepcion","pos":"WR","team":"FA","adp":113.6,"proj":94.0,"pr":"WR50"},
+{"id":"x115","name":"Kenneth Gainwell","pos":"RB","team":"Tampa Bay Buccaneers","adp":115.3,"proj":118.2,"pr":"RB37"},
+{"id":"x116","name":"Josh Downs","pos":"WR","team":"Indianapolis Colts","adp":116.7,"proj":132.1,"pr":"WR51"},
+{"id":"x117","name":"Tyler Shough","pos":"QB","team":"New Orleans Saints","adp":118.3,"proj":264.0,"pr":"QB20"},
+{"id":"x118","name":"Jalen Coker","pos":"WR","team":"Carolina Panthers","adp":119.0,"proj":133.9,"pr":"WR52"},
+{"id":"x119","name":"Jordan Mason","pos":"RB","team":"Minnesota Vikings","adp":119.8,"proj":107.0,"pr":"RB38"},
+{"id":"x120","name":"Matthew Golden","pos":"WR","team":"Green Bay Packers","adp":121.3,"proj":116.1,"pr":"WR53"},
+{"id":"x121","name":"George Kittle","pos":"TE","team":"San Francisco 49ers","adp":121.5,"proj":123.4,"pr":"TE10"},
+{"id":"x122","name":"Malik Willis","pos":"QB","team":"Miami Dolphins","adp":124.4,"proj":256.8,"pr":"QB21"},
+{"id":"x123","name":"Rachaad White","pos":"RB","team":"Washington Commanders","adp":124.7,"proj":81.0,"pr":"RB39"},
+{"id":"x124","name":"Dalton Kincaid","pos":"TE","team":"Buffalo Bills","adp":124.9,"proj":125.6,"pr":"TE11"},
+{"id":"x125","name":"Jayden Higgins","pos":"WR","team":"Houston Texans","adp":125.1,"proj":135.2,"pr":"WR54"},
+{"id":"x126","name":"Khalil Shakir","pos":"WR","team":"Buffalo Bills","adp":127.1,"proj":132.0,"pr":"WR55"},
+{"id":"x127","name":"Jake Ferguson","pos":"TE","team":"Dallas Cowboys","adp":127.7,"proj":126.8,"pr":"TE12"},
+{"id":"x128","name":"Sam Darnold","pos":"QB","team":"Seattle Seahawks","adp":129.2,"proj":266.7,"pr":"QB22"},
+{"id":"x129","name":"Travis Kelce","pos":"TE","team":"Kansas City Chiefs","adp":130.6,"proj":127.1,"pr":"TE13"},
+{"id":"x130","name":"Chris Rodriguez","pos":"RB","team":"Jacksonville Jaguars","adp":131.3,"proj":110.1,"pr":"RB40"},
+{"id":"x131","name":"Jonah Coleman","pos":"RB","team":"FA","adp":131.5,"proj":0.0,"pr":"RB41"},
+{"id":"x132","name":"Jalen McMillan","pos":"WR","team":"Tampa Bay Buccaneers","adp":131.6,"proj":98.4,"pr":"WR56"},
+{"id":"x133","name":"Kenyon Sadiq","pos":"TE","team":"FA","adp":133.5,"proj":0.0,"pr":"TE14"},
+{"id":"x134","name":"C.J. Stroud","pos":"QB","team":"Houston Texans","adp":134.2,"proj":238.2,"pr":"QB23"},
+{"id":"x135","name":"Aaron Jones","pos":"RB","team":"Minnesota Vikings","adp":134.3,"proj":127.4,"pr":"RB42"},
+{"id":"x136","name":"Omar Cooper Jr.","pos":"WR","team":"FA","adp":135.7,"proj":0.0,"pr":"WR57"},
+{"id":"x137","name":"Mike Washington Jr.","pos":"RB","team":"FA","adp":136.4,"proj":0.0,"pr":"RB43"},
+{"id":"x138","name":"Dallas Goedert","pos":"TE","team":"Philadelphia Eagles","adp":136.5,"proj":125.1,"pr":"TE15"},
+{"id":"x139","name":"Denzel Boston","pos":"WR","team":"FA","adp":140.8,"proj":0.0,"pr":"WR58"},
+{"id":"x140","name":"Cam Ward","pos":"QB","team":"Tennessee Titans","adp":140.9,"proj":233.8,"pr":"QB24"},
+{"id":"x141","name":"Isaiah Likely","pos":"TE","team":"New York Giants","adp":141.7,"proj":121.7,"pr":"TE16"},
+{"id":"x142","name":"Jacory Croskey-Merritt","pos":"RB","team":"Washington Commanders","adp":142.5,"proj":94.4,"pr":"RB44"},
+{"id":"x143","name":"Jauan Jennings","pos":"WR","team":"FA","adp":142.6,"proj":0.0,"pr":"WR59"},
+{"id":"x144","name":"Daniel Jones","pos":"QB","team":"Indianapolis Colts","adp":143.3,"proj":235.5,"pr":"QB25"},
+{"id":"x145","name":"Rashid Shaheed","pos":"WR","team":"Seattle Seahawks","adp":143.5,"proj":113.2,"pr":"WR60"},
+{"id":"x146","name":"Bryce Young","pos":"QB","team":"Carolina Panthers","adp":146.5,"proj":229.3,"pr":"QB26"},
+{"id":"x147","name":"Jonathon Brooks","pos":"RB","team":"Carolina Panthers","adp":146.6,"proj":24.3,"pr":"RB45"},
+{"id":"x148","name":"Mark Andrews","pos":"TE","team":"Baltimore Ravens","adp":147.1,"proj":127.8,"pr":"TE17"},
+{"id":"x149","name":"Zach Charbonnet","pos":"RB","team":"Seattle Seahawks","adp":147.9,"proj":87.9,"pr":"RB46"},
+{"id":"x150","name":"Brenton Strange","pos":"TE","team":"Jacksonville Jaguars","adp":150.7,"proj":124.8,"pr":"TE18"},
+{"id":"x151","name":"Tyrone Tracy","pos":"RB","team":"New York Giants","adp":151.1,"proj":92.4,"pr":"RB47"},
+{"id":"x152","name":"Travis Hunter","pos":"WR","team":"Jacksonville Jaguars","adp":151.6,"proj":80.5,"pr":"WR61"},
+{"id":"x153","name":"Stefon Diggs","pos":"WR","team":"FA","adp":153.1,"proj":0.0,"pr":"WR62"},
+{"id":"x154","name":"Brandon Aiyuk","pos":"WR","team":"San Francisco 49ers","adp":154.4,"proj":106.3,"pr":"WR63"},
+{"id":"x155","name":"Keaton Mitchell","pos":"RB","team":"Los Angeles Chargers","adp":154.8,"proj":75.8,"pr":"RB48"},
+{"id":"x156","name":"Juwan Johnson","pos":"TE","team":"New Orleans Saints","adp":156.2,"proj":116.0,"pr":"TE19"},
+{"id":"x157","name":"Jacoby Brissett","pos":"QB","team":"Arizona Cardinals","adp":156.4,"proj":136.6,"pr":"QB27"},
+{"id":"x158","name":"Fernando Mendoza","pos":"QB","team":"FA","adp":157.9,"proj":0.0,"pr":"QB28"},
+{"id":"x159","name":"Hunter Henry","pos":"TE","team":"New England Patriots","adp":158.9,"proj":119.9,"pr":"TE20"},
+{"id":"x160","name":"Jerry Jeudy","pos":"WR","team":"Cleveland Browns","adp":159.7,"proj":118.5,"pr":"WR64"},
+{"id":"x161","name":"Chig Okonkwo","pos":"TE","team":"Washington Commanders","adp":159.9,"proj":85.7,"pr":"TE21"},
+{"id":"x162","name":"James Conner","pos":"RB","team":"Arizona Cardinals","adp":161.8,"proj":83.3,"pr":"RB49"},
+{"id":"x163","name":"Woody Marks","pos":"RB","team":"Houston Texans","adp":163.2,"proj":76.3,"pr":"RB50"},
+{"id":"x164","name":"Emanuel Wilson","pos":"RB","team":"Seattle Seahawks","adp":163.8,"proj":78.5,"pr":"RB51"},
+{"id":"x165","name":"Deebo Samuel","pos":"WR","team":"FA","adp":165.0,"proj":0.0,"pr":"WR65"},
+{"id":"x166","name":"Emmett Johnson","pos":"RB","team":"FA","adp":167.1,"proj":0.0,"pr":"RB52"},
+{"id":"x167","name":"Isiah Pacheco","pos":"RB","team":"Detroit Lions","adp":168.2,"proj":54.8,"pr":"RB53"},
+{"id":"x168","name":"Geno Smith","pos":"QB","team":"New York Jets","adp":168.8,"proj":146.8,"pr":"QB29"},
+{"id":"x169","name":"Adonai Mitchell","pos":"WR","team":"New York Jets","adp":170.7,"proj":73.3,"pr":"WR66"},
+{"id":"x170","name":"Jalen Nailor","pos":"WR","team":"Las Vegas Raiders","adp":170.7,"proj":104.1,"pr":"WR66"},
+{"id":"x171","name":"Isaac TeSlaa","pos":"WR","team":"Detroit Lions","adp":172.1,"proj":88.9,"pr":"WR68"},
+{"id":"x172","name":"Kayshon Boutte","pos":"WR","team":"New England Patriots","adp":172.3,"proj":95.6,"pr":"WR69"},
+{"id":"x173","name":"T.J. Hockenson","pos":"TE","team":"Minnesota Vikings","adp":172.4,"proj":106.2,"pr":"TE22"},
+{"id":"x174","name":"Calvin Ridley","pos":"WR","team":"Tennessee Titans","adp":173.8,"proj":81.9,"pr":"WR70"},
+{"id":"x175","name":"Dylan Sampson","pos":"RB","team":"Cleveland Browns","adp":175.1,"proj":79.2,"pr":"RB54"},
+{"id":"x176","name":"Brian Robinson","pos":"RB","team":"Atlanta Falcons","adp":175.8,"proj":56.4,"pr":"RB55"},
+{"id":"x177","name":"AJ Barner","pos":"TE","team":"Seattle Seahawks","adp":176.6,"proj":113.4,"pr":"TE23"},
+{"id":"x178","name":"Dalton Schultz","pos":"TE","team":"Houston Texans","adp":177.8,"proj":113.8,"pr":"TE24"},
+{"id":"x179","name":"Tyreek Hill","pos":"WR","team":"FA","adp":179.2,"proj":0.0,"pr":"WR71"},
+{"id":"x180","name":"Tyjae Spears","pos":"RB","team":"Tennessee Titans","adp":180.0,"proj":88.8,"pr":"RB56"},
+{"id":"x181","name":"Tre' Harris","pos":"WR","team":"Los Angeles Chargers","adp":181.2,"proj":93.9,"pr":"WR72"},
+{"id":"x182","name":"Eli Stowers","pos":"TE","team":"FA","adp":182.6,"proj":0.0,"pr":"TE25"},
+{"id":"x183","name":"Christian Kirk","pos":"WR","team":"San Francisco 49ers","adp":184.3,"proj":78.8,"pr":"WR73"},
+{"id":"x184","name":"Tank Bigsby","pos":"RB","team":"Philadelphia Eagles","adp":184.5,"proj":55.2,"pr":"RB57"},
+{"id":"x185","name":"Tank Dell","pos":"WR","team":"Houston Texans","adp":184.6,"proj":80.8,"pr":"WR74"},
+{"id":"x186","name":"Darnell Mooney","pos":"WR","team":"New York Giants","adp":186.1,"proj":85.7,"pr":"WR75"},
+{"id":"x187","name":"Sean Tucker","pos":"RB","team":"Tampa Bay Buccaneers","adp":188.6,"proj":125.0,"pr":"RB58"},
+{"id":"x188","name":"Malik Washington","pos":"WR","team":"Miami Dolphins","adp":188.8,"proj":82.2,"pr":"WR76"},
+{"id":"x189","name":"Mason Taylor","pos":"TE","team":"New York Jets","adp":189.3,"proj":105.4,"pr":"TE26"},
+{"id":"x190","name":"Nicholas Singleton","pos":"RB","team":"FA","adp":189.9,"proj":0.0,"pr":"RB59"},
+{"id":"x191","name":"Chimere Dike","pos":"WR","team":"Tennessee Titans","adp":192.0,"proj":97.0,"pr":"WR77"},
+{"id":"x192","name":"Tre Tucker","pos":"WR","team":"Las Vegas Raiders","adp":192.9,"proj":82.3,"pr":"WR78"},
+{"id":"x193","name":"Alvin Kamara","pos":"RB","team":"New Orleans Saints","adp":193.9,"proj":42.9,"pr":"RB60"},
+{"id":"x194","name":"Tua Tagovailoa","pos":"QB","team":"Atlanta Falcons","adp":195.4,"proj":109.9,"pr":"QB30"},
+{"id":"x195","name":"David Njoku","pos":"TE","team":"FA","adp":196.6,"proj":0.0,"pr":"TE27"},
+{"id":"x196","name":"Cade Otton","pos":"TE","team":"Tampa Bay Buccaneers","adp":197.0,"proj":92.6,"pr":"TE28"},
+{"id":"x197","name":"Braelon Allen","pos":"RB","team":"New York Jets","adp":198.1,"proj":51.0,"pr":"RB61"},
+{"id":"x198","name":"Gunnar Helm","pos":"TE","team":"Tennessee Titans","adp":198.5,"proj":79.6,"pr":"TE29"},
+{"id":"x199","name":"Chris Brazzell II","pos":"WR","team":"FA","adp":199.6,"proj":0.0,"pr":"WR79"},
+{"id":"x200","name":"Jordan James","pos":"RB","team":"San Francisco 49ers","adp":202.0,"proj":21.9,"pr":"RB62"},
+{"id":"x201","name":"Aaron Rodgers","pos":"QB","team":"Pittsburgh Steelers","adp":202.1,"proj":0.0,"pr":"QB31"},
+{"id":"x202","name":"Ryan Flournoy","pos":"WR","team":"Dallas Cowboys","adp":204.0,"proj":94.0,"pr":"WR80"},
+{"id":"x203","name":"Kimani Vidal","pos":"RB","team":"Los Angeles Chargers","adp":204.6,"proj":53.3,"pr":"RB63"},
+{"id":"x204","name":"Germie Bernard","pos":"WR","team":"FA","adp":204.9,"proj":0.0,"pr":"WR81"},
+{"id":"x205","name":"Terrance Ferguson","pos":"TE","team":"Los Angeles Rams","adp":205.5,"proj":87.1,"pr":"TE30"},
+{"id":"x206","name":"Pat Freiermuth","pos":"TE","team":"Pittsburgh Steelers","adp":208.3,"proj":102.9,"pr":"TE31"},
+{"id":"x207","name":"Elijah Sarratt","pos":"WR","team":"FA","adp":208.3,"proj":0.0,"pr":"WR82"},
+{"id":"x208","name":"Pat Bryant","pos":"WR","team":"Denver Broncos","adp":208.5,"proj":78.9,"pr":"WR83"},
+{"id":"x209","name":"Kaytron Allen","pos":"RB","team":"FA","adp":208.9,"proj":0.0,"pr":"RB64"},
+{"id":"x210","name":"Ray Davis","pos":"RB","team":"Buffalo Bills","adp":210.4,"proj":26.2,"pr":"RB65"},
+{"id":"x211","name":"Hollywood Brown","pos":"WR","team":"Philadelphia Eagles","adp":211.2,"proj":65.1,"pr":"WR84"},
+{"id":"x212","name":"Tory Horton","pos":"WR","team":"Seattle Seahawks","adp":212.4,"proj":88.8,"pr":"WR85"},
+{"id":"x213","name":"Zachariah Branch","pos":"WR","team":"FA","adp":213.9,"proj":0.0,"pr":"WR86"},
+{"id":"x214","name":"Troy Franklin","pos":"WR","team":"Denver Broncos","adp":217.3,"proj":70.6,"pr":"WR87"},
+{"id":"x215","name":"Najee Harris","pos":"RB","team":"FA","adp":218.1,"proj":0.0,"pr":"RB66"},
+{"id":"x216","name":"Michael Penix","pos":"QB","team":"Atlanta Falcons","adp":218.8,"proj":132.6,"pr":"QB32"},
+{"id":"x217","name":"Jake Tonges","pos":"TE","team":"San Francisco 49ers","adp":221.0,"proj":50.0,"pr":"TE32"},
+{"id":"x218","name":"Devaughn Vele","pos":"WR","team":"New Orleans Saints","adp":221.7,"proj":84.3,"pr":"WR88"},
+{"id":"x219","name":"Trey Benson","pos":"RB","team":"Arizona Cardinals","adp":222.5,"proj":32.4,"pr":"RB67"},
+{"id":"x220","name":"Kirk Cousins","pos":"QB","team":"Las Vegas Raiders","adp":223.2,"proj":43.2,"pr":"QB33"},
+{"id":"x221","name":"Elic Ayomanor","pos":"WR","team":"Tennessee Titans","adp":224.7,"proj":80.8,"pr":"WR89"},
+{"id":"x222","name":"Ollie Gordon","pos":"RB","team":"Miami Dolphins","adp":224.8,"proj":21.7,"pr":"RB68"},
+{"id":"x223","name":"Colby Parkinson","pos":"TE","team":"Los Angeles Rams","adp":225.4,"proj":69.9,"pr":"TE33"},
+{"id":"x224","name":"Ty Simpson","pos":"QB","team":"FA","adp":227.3,"proj":0.0,"pr":"QB34"},
+{"id":"x225","name":"Chris Bell","pos":"WR","team":"FA","adp":227.4,"proj":0.0,"pr":"WR90"},
+{"id":"x226","name":"Kyle Williams","pos":"WR","team":"New England Patriots","adp":227.6,"proj":51.8,"pr":"WR91"},
+{"id":"x227","name":"Shedeur Sanders","pos":"QB","team":"Cleveland Browns","adp":228.9,"proj":36.6,"pr":"QB35"},
+{"id":"x228","name":"Justice Hill","pos":"RB","team":"Baltimore Ravens","adp":229.1,"proj":45.0,"pr":"RB69"},
+{"id":"x229","name":"Mike Gesicki","pos":"TE","team":"Cincinnati Bengals","adp":229.4,"proj":76.1,"pr":"TE34"},
+{"id":"x230","name":"George Holani","pos":"RB","team":"Seattle Seahawks","adp":229.5,"proj":52.9,"pr":"RB70"},
+{"id":"x231","name":"Dontayvion Wicks","pos":"WR","team":"Green Bay Packers","adp":230.1,"proj":55.2,"pr":"WR92"},
+{"id":"x232","name":"Ted Hurst","pos":"WR","team":"FA","adp":230.2,"proj":0.0,"pr":"WR93"},
+{"id":"x233","name":"Rashod Bateman","pos":"WR","team":"Baltimore Ravens","adp":231.2,"proj":70.1,"pr":"WR94"},
+{"id":"x234","name":"Jaydon Blue","pos":"RB","team":"Dallas Cowboys","adp":232.2,"proj":41.4,"pr":"RB71"},
+{"id":"x235","name":"Antonio Williams","pos":"WR","team":"FA","adp":233.3,"proj":0.0,"pr":"WR95"},
+{"id":"x236","name":"Jaylin Noel","pos":"WR","team":"Houston Texans","adp":233.7,"proj":67.4,"pr":"WR96"},
+{"id":"x237","name":"Demond Claiborne","pos":"RB","team":"FA","adp":233.8,"proj":0.0,"pr":"RB72"},
+{"id":"x238","name":"Tez Johnson","pos":"WR","team":"Tampa Bay Buccaneers","adp":233.9,"proj":54.1,"pr":"WR97"},
+{"id":"x239","name":"Theo Johnson","pos":"TE","team":"New York Giants","adp":234.3,"proj":86.3,"pr":"TE35"},
+{"id":"x240","name":"Cooper Kupp","pos":"WR","team":"Seattle Seahawks","adp":234.9,"proj":70.4,"pr":"WR98"},
+{"id":"x241","name":"Deshaun Watson","pos":"QB","team":"Cleveland Browns","adp":235.3,"proj":36.5,"pr":"QB36"},
+{"id":"x242","name":"Jalen Tolbert","pos":"WR","team":"Miami Dolphins","adp":235.6,"proj":27.7,"pr":"WR99"},
+{"id":"x243","name":"Greg Dulcich","pos":"TE","team":"Miami Dolphins","adp":235.8,"proj":29.8,"pr":"TE36"},
+{"id":"x244","name":"Evan Engram","pos":"TE","team":"Denver Broncos","adp":236.1,"proj":84.8,"pr":"TE37"},
+{"id":"x245","name":"Keon Coleman","pos":"WR","team":"Buffalo Bills","adp":236.3,"proj":31.8,"pr":"WR100"},
+{"id":"x246","name":"Emari Demercado","pos":"RB","team":"Kansas City Chiefs","adp":237.1,"proj":12.0,"pr":"RB73"},
+{"id":"x247","name":"Ja'Kobi Lane","pos":"WR","team":"FA","adp":237.1,"proj":0.0,"pr":"WR101"},
+{"id":"x248","name":"Justin Fields","pos":"QB","team":"Kansas City Chiefs","adp":237.3,"proj":36.7,"pr":"QB37"},
+{"id":"x249","name":"Tyquan Thornton","pos":"WR","team":"Kansas City Chiefs","adp":237.6,"proj":26.3,"pr":"WR102"},
+{"id":"x250","name":"DJ Giddens","pos":"RB","team":"Indianapolis Colts","adp":237.6,"proj":21.2,"pr":"RB74"},
+{"id":"x251","name":"Keenan Allen","pos":"WR","team":"FA","adp":237.7,"proj":0.0,"pr":"WR103"},
+{"id":"x252","name":"LeQuint Allen","pos":"RB","team":"Jacksonville Jaguars","adp":237.7,"proj":43.8,"pr":"RB75"},
+{"id":"x253","name":"Adam Randall","pos":"RB","team":"FA","adp":237.8,"proj":0.0,"pr":"RB76"},
+{"id":"x254","name":"Jahan Dotson","pos":"WR","team":"Atlanta Falcons","adp":237.9,"proj":56.6,"pr":"WR104"},
+{"id":"x255","name":"Seth McGowan","pos":"RB","team":"FA","adp":238.1,"proj":0.0,"pr":"RB77"},
+{"id":"x256","name":"Kaleb Johnson","pos":"RB","team":"Pittsburgh Steelers","adp":238.2,"proj":41.2,"pr":"RB78"},
+{"id":"x257","name":"Darius Slayton","pos":"WR","team":"New York Giants","adp":238.3,"proj":73.0,"pr":"WR105"},
+{"id":"x258","name":"Skyler Bell","pos":"WR","team":"FA","adp":238.5,"proj":0.0,"pr":"WR106"},
+{"id":"x259","name":"Jack Bech","pos":"WR","team":"Las Vegas Raiders","adp":238.6,"proj":61.6,"pr":"WR107"},
+{"id":"x260","name":"Bryce Lance","pos":"WR","team":"FA","adp":238.6,"proj":0.0,"pr":"WR108"},
+{"id":"x261","name":"Joe Mixon","pos":"RB","team":"FA","adp":238.6,"proj":0.0,"pr":"RB79"},
+{"id":"x262","name":"Dawson Knox","pos":"TE","team":"Buffalo Bills","adp":238.7,"proj":62.4,"pr":"TE38"},
+{"id":"x263","name":"Mack Hollins","pos":"WR","team":"New England Patriots","adp":238.8,"proj":80.5,"pr":"WR109"},
+{"id":"x264","name":"Chris Brooks","pos":"RB","team":"Green Bay Packers","adp":238.8,"proj":32.6,"pr":"RB80"},
+{"id":"x265","name":"Darnell Washington","pos":"TE","team":"Pittsburgh Steelers","adp":238.9,"proj":58.2,"pr":"TE39"},
+{"id":"x266","name":"Jaylen Wright","pos":"RB","team":"Miami Dolphins","adp":239.0,"proj":41.1,"pr":"RB81"},
+{"id":"x267","name":"Ty Johnson","pos":"RB","team":"Buffalo Bills","adp":239.1,"proj":49.2,"pr":"RB82"},
+{"id":"x268","name":"Isaiah Bond","pos":"WR","team":"Cleveland Browns","adp":239.1,"proj":29.4,"pr":"WR110"},
+{"id":"x269","name":"Andrei Iosivas","pos":"WR","team":"Cincinnati Bengals","adp":239.1,"proj":75.3,"pr":"WR111"},
+{"id":"x270","name":"Malachi Fields","pos":"WR","team":"FA","adp":239.2,"proj":0.0,"pr":"WR112"},
+{"id":"x271","name":"Kendrick Bourne","pos":"WR","team":"Arizona Cardinals","adp":239.3,"proj":25.6,"pr":"WR113"},
+{"id":"x272","name":"Devontez Walker","pos":"WR","team":"Baltimore Ravens","adp":239.3,"proj":11.6,"pr":"WR113"},
+{"id":"x273","name":"Michael Mayer","pos":"TE","team":"Las Vegas Raiders","adp":239.3,"proj":53.0,"pr":"TE40"},
+{"id":"x274","name":"Mac Jones","pos":"QB","team":"San Francisco 49ers","adp":239.4,"proj":28.7,"pr":"QB38"},
+{"id":"x275","name":"Elijah Arroyo","pos":"TE","team":"Seattle Seahawks","adp":239.4,"proj":57.7,"pr":"TE41"},
+{"id":"x276","name":"MarShawn Lloyd","pos":"RB","team":"Green Bay Packers","adp":239.5,"proj":3.1,"pr":"RB83"},
+{"id":"x277","name":"Tahj Brooks","pos":"RB","team":"Cincinnati Bengals","adp":239.5,"proj":22.9,"pr":"RB84"},
+{"id":"x278","name":"Brenen Thompson","pos":"WR","team":"FA","adp":239.5,"proj":0.0,"pr":"WR115"},
+{"id":"x279","name":"Ja'Tavion Sanders","pos":"TE","team":"Carolina Panthers","adp":239.5,"proj":29.3,"pr":"TE42"},
+{"id":"x280","name":"Xavier Legette","pos":"WR","team":"Carolina Panthers","adp":239.5,"proj":32.1,"pr":"WR116"},
+{"id":"x281","name":"Tutu Atwell","pos":"WR","team":"Miami Dolphins","adp":239.6,"proj":28.2,"pr":"WR117"},
+{"id":"x282","name":"Max Klare","pos":"TE","team":"FA","adp":239.6,"proj":0.0,"pr":"TE43"},
+{"id":"x283","name":"Marvin Mims Jr.","pos":"WR","team":"Denver Broncos","adp":239.6,"proj":58.4,"pr":"WR118"},
+{"id":"x284","name":"DeMario Douglas","pos":"WR","team":"New England Patriots","adp":239.6,"proj":75.4,"pr":"WR119"},
+{"id":"x285","name":"Brashard Smith","pos":"RB","team":"Kansas City Chiefs","adp":239.6,"proj":31.4,"pr":"RB85"},
+{"id":"x286","name":"Trevor Etienne","pos":"RB","team":"Carolina Panthers","adp":239.6,"proj":28.6,"pr":"RB86"},
+{"id":"x287","name":"Kalif Raymond","pos":"WR","team":"Chicago Bears","adp":239.6,"proj":23.2,"pr":"WR120"},
+{"id":"x288","name":"Jerome Ford","pos":"RB","team":"Washington Commanders","adp":239.7,"proj":33.2,"pr":"RB87"},
+{"id":"x289","name":"Treylon Burks","pos":"WR","team":"Washington Commanders","adp":239.7,"proj":28.8,"pr":"WR121"},
+{"id":"x290","name":"Roman Hemby","pos":"RB","team":"FA","adp":239.7,"proj":0.0,"pr":"RB88"},
+{"id":"x291","name":"Malik Davis","pos":"RB","team":"Dallas Cowboys","adp":239.7,"proj":27.4,"pr":"RB89"},
+{"id":"x292","name":"Calvin Austin III","pos":"WR","team":"New York Giants","adp":239.7,"proj":45.7,"pr":"WR122"},
+{"id":"x293","name":"Olamide Zaccheaus","pos":"WR","team":"Atlanta Falcons","adp":239.7,"proj":66.0,"pr":"WR123"},
+{"id":"x294","name":"Devin Neal","pos":"RB","team":"New Orleans Saints","adp":239.7,"proj":30.4,"pr":"RB90"},
+{"id":"x295","name":"Isaac Guerendo","pos":"RB","team":"San Francisco 49ers","adp":239.7,"proj":24.5,"pr":"RB90"},
+{"id":"x296","name":"J'Mari Taylor","pos":"RB","team":"FA","adp":239.7,"proj":0.0,"pr":"RB92"},
+{"id":"x297","name":"Cole Kmet","pos":"TE","team":"Chicago Bears","adp":239.8,"proj":54.1,"pr":"TE44"},
+{"id":"x298","name":"Joe Flacco","pos":"QB","team":"Cincinnati Bengals","adp":239.8,"proj":28.7,"pr":"QB39"},
+{"id":"x299","name":"J.J. McCarthy","pos":"QB","team":"Minnesota Vikings","adp":239.8,"proj":33.1,"pr":"QB40"},
+{"id":"x300","name":"De'Zhaun Stribling","pos":"WR","team":"FA","adp":239.8,"proj":0.0,"pr":"WR124"},
+{"id":"x301","name":"Sam Roush","pos":"TE","team":"FA","adp":239.8,"proj":0.0,"pr":"TE45"},
+{"id":"x302","name":"Tyler Higbee","pos":"TE","team":"Los Angeles Rams","adp":239.8,"proj":29.2,"pr":"TE46"},
+{"id":"x303","name":"Dont'e Thornton","pos":"WR","team":"Las Vegas Raiders","adp":239.8,"proj":24.4,"pr":"WR125"},
+{"id":"x304","name":"Anthony Richardson","pos":"QB","team":"Indianapolis Colts","adp":239.8,"proj":36.5,"pr":"QB41"},
+{"id":"x305","name":"Samaje Perine","pos":"RB","team":"Cincinnati Bengals","adp":239.8,"proj":29.2,"pr":"RB93"},
+{"id":"x306","name":"KeAndre Lambert-Smith","pos":"WR","team":"Los Angeles Chargers","adp":239.8,"proj":29.0,"pr":"WR126"},
+{"id":"x307","name":"Luke McCaffrey","pos":"WR","team":"Washington Commanders","adp":239.8,"proj":7.3,"pr":"WR126"},
+{"id":"x308","name":"Kenny McIntosh","pos":"RB","team":"Seattle Seahawks","adp":239.8,"proj":4.4,"pr":"RB93"},
+{"id":"x309","name":"Oscar Delp","pos":"TE","team":"FA","adp":239.8,"proj":0.0,"pr":"TE47"},
+{"id":"x310","name":"Will Shipley","pos":"RB","team":"Philadelphia Eagles","adp":239.8,"proj":28.8,"pr":"RB95"},
+{"id":"x311","name":"Le'Veon Moss","pos":"RB","team":"FA","adp":239.8,"proj":0.0,"pr":"RB96"},
+{"id":"x312","name":"Savion Williams","pos":"WR","team":"Green Bay Packers","adp":239.9,"proj":5.3,"pr":"WR128"},
+{"id":"x313","name":"Jaylin Lane","pos":"WR","team":"Washington Commanders","adp":239.9,"proj":53.0,"pr":"WR129"},
+{"id":"x314","name":"KaVontae Turpin","pos":"WR","team":"Dallas Cowboys","adp":239.9,"proj":63.0,"pr":"WR130"},
+{"id":"x315","name":"Kareem Hunt","pos":"RB","team":"FA","adp":239.9,"proj":0.0,"pr":"RB97"},
+{"id":"x316","name":"Jaydn Ott","pos":"RB","team":"FA","adp":239.9,"proj":0.0,"pr":"RB98"},
+{"id":"x317","name":"Greg Dortch","pos":"WR","team":"Detroit Lions","adp":239.9,"proj":22.7,"pr":"WR131"},
+{"id":"x318","name":"Will Howard","pos":"QB","team":"Pittsburgh Steelers","adp":239.9,"proj":11.8,"pr":"QB42"},
+{"id":"x319","name":"Cedric Tillman","pos":"WR","team":"Cleveland Browns","adp":239.9,"proj":7.2,"pr":"WR131"},
+{"id":"x320","name":"Eric McAlister","pos":"WR","team":"FA","adp":239.9,"proj":0.0,"pr":"WR131"},
+{"id":"x321","name":"Jam Miller","pos":"RB","team":"FA","adp":239.9,"proj":0.0,"pr":"RB99"},
+{"id":"x322","name":"Michael Trigg","pos":"TE","team":"FA","adp":239.9,"proj":0.0,"pr":"TE48"},
+{"id":"x323","name":"Riley Leonard","pos":"QB","team":"Indianapolis Colts","adp":239.9,"proj":0.0,"pr":"QB43"},
+{"id":"x324","name":"John Metchie III","pos":"WR","team":"Carolina Panthers","adp":239.9,"proj":30.0,"pr":"WR134"},
+{"id":"x325","name":"Dyami Brown","pos":"WR","team":"Washington Commanders","adp":239.9,"proj":3.9,"pr":"WR134"},
+{"id":"x326","name":"Nick Westbrook-Ikhine","pos":"WR","team":"Indianapolis Colts","adp":239.9,"proj":22.2,"pr":"WR136"},
+{"id":"x327","name":"Audric Estime","pos":"RB","team":"New Orleans Saints","adp":239.9,"proj":21.1,"pr":"RB100"},
+{"id":"x328","name":"Deion Burks","pos":"WR","team":"FA","adp":239.9,"proj":0.0,"pr":"WR136"},
+{"id":"x329","name":"Kaelon Black","pos":"RB","team":"FA","adp":239.9,"proj":0.0,"pr":"RB100"},
+{"id":"x330","name":"Tai Felton","pos":"WR","team":"Minnesota Vikings","adp":239.9,"proj":29.0,"pr":"WR138"},
+{"id":"x331","name":"Mitchell Evans","pos":"TE","team":"Carolina Panthers","adp":239.9,"proj":25.4,"pr":"TE49"},
+{"id":"x332","name":"Gardner Minshew II","pos":"QB","team":"Arizona Cardinals","adp":239.9,"proj":12.0,"pr":"QB44"},
+{"id":"x333","name":"Tyler Conklin","pos":"TE","team":"Detroit Lions","adp":239.9,"proj":1.2,"pr":"TE49"},
+{"id":"x334","name":"Nick Chubb","pos":"RB","team":"Houston Texans","adp":239.9,"proj":0.0,"pr":"RB102"},
+{"id":"x335","name":"Jonnu Smith","pos":"TE","team":"FA","adp":239.9,"proj":0.0,"pr":"TE49"},
+{"id":"x336","name":"Xavier Hutchinson","pos":"WR","team":"Houston Texans","adp":239.9,"proj":31.6,"pr":"WR139"},
+{"id":"x337","name":"Zach Ertz","pos":"TE","team":"FA","adp":239.9,"proj":0.0,"pr":"TE52"},
+{"id":"x338","name":"Mitch Tinsley","pos":"WR","team":"Cincinnati Bengals","adp":239.9,"proj":0.0,"pr":"WR139"},
+{"id":"x339","name":"Marcus Mariota","pos":"QB","team":"Washington Commanders","adp":240.0,"proj":13.1,"pr":"QB45"},
+{"id":"x340","name":"Jarquez Hunter","pos":"RB","team":"Los Angeles Rams","adp":240.0,"proj":8.6,"pr":"RB103"},
+{"id":"x341","name":"Charlie Kolar","pos":"TE","team":"Los Angeles Chargers","adp":240.0,"proj":46.9,"pr":"TE53"},
+{"id":"x342","name":"Carson Wentz","pos":"QB","team":"Minnesota Vikings","adp":240.0,"proj":12.4,"pr":"QB46"},
+{"id":"x343","name":"Phil Mafah","pos":"RB","team":"Dallas Cowboys","adp":240.0,"proj":4.1,"pr":"RB104"},
+{"id":"x344","name":"Darren Waller","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE53"},
+{"id":"x345","name":"Rahsul Faison","pos":"RB","team":"FA","adp":240.0,"proj":0.0,"pr":"RB104"},
+{"id":"x346","name":"Theo Wease","pos":"WR","team":"Miami Dolphins","adp":240.0,"proj":55.1,"pr":"WR141"},
+{"id":"x347","name":"Isaiah Davis","pos":"RB","team":"New York Jets","adp":240.0,"proj":36.2,"pr":"RB106"},
+{"id":"x348","name":"Konata Mumpfield","pos":"WR","team":"Los Angeles Rams","adp":240.0,"proj":33.7,"pr":"WR141"},
+{"id":"x349","name":"Rasheen Ali","pos":"RB","team":"Baltimore Ravens","adp":240.0,"proj":32.7,"pr":"RB106"},
+{"id":"x350","name":"Luke Musgrave","pos":"TE","team":"Green Bay Packers","adp":240.0,"proj":32.1,"pr":"TE55"},
+{"id":"x351","name":"Efton Chism","pos":"WR","team":"New England Patriots","adp":240.0,"proj":25.2,"pr":"WR141"},
+{"id":"x352","name":"Jawhar Jordan","pos":"RB","team":"Houston Texans","adp":240.0,"proj":24.5,"pr":"RB106"},
+{"id":"x353","name":"Jordan Whittington","pos":"WR","team":"Los Angeles Rams","adp":240.0,"proj":19.3,"pr":"WR141"},
+{"id":"x354","name":"Jameis Winston","pos":"QB","team":"New York Giants","adp":240.0,"proj":12.9,"pr":"QB47"},
+{"id":"x355","name":"Elijah Moore","pos":"WR","team":"Philadelphia Eagles","adp":240.0,"proj":0.0,"pr":"WR141"},
+{"id":"x356","name":"Erick All","pos":"TE","team":"Cincinnati Bengals","adp":240.0,"proj":0.0,"pr":"TE55"},
+{"id":"x357","name":"Nathan Carter","pos":"RB","team":"Atlanta Falcons","adp":240.0,"proj":0.0,"pr":"RB106"},
+{"id":"x358","name":"Reggie Virgil","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR141"},
+{"id":"x359","name":"Josh Cameron","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR141"},
+{"id":"x360","name":"Elijah Higgins","pos":"TE","team":"Arizona Cardinals","adp":240.0,"proj":32.9,"pr":"TE57"},
+{"id":"x361","name":"Jalen Royals","pos":"WR","team":"Kansas City Chiefs","adp":240.0,"proj":26.4,"pr":"WR148"},
+{"id":"x362","name":"Jimmy Horn","pos":"WR","team":"Carolina Panthers","adp":240.0,"proj":22.9,"pr":"WR148"},
+{"id":"x363","name":"Roman Wilson","pos":"WR","team":"Pittsburgh Steelers","adp":240.0,"proj":22.3,"pr":"WR148"},
+{"id":"x364","name":"Jalen Milroe","pos":"QB","team":"Seattle Seahawks","adp":240.0,"proj":13.9,"pr":"QB48"},
+{"id":"x365","name":"Tanner McKee","pos":"QB","team":"Philadelphia Eagles","adp":240.0,"proj":12.4,"pr":"QB48"},
+{"id":"x366","name":"Joe Milton","pos":"QB","team":"Dallas Cowboys","adp":240.0,"proj":12.4,"pr":"QB48"},
+{"id":"x367","name":"Durham Smythe","pos":"TE","team":"Baltimore Ravens","adp":240.0,"proj":2.4,"pr":"TE57"},
+{"id":"x368","name":"Justin Joly","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE57"},
+{"id":"x369","name":"Chase Claypool","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR148"},
+{"id":"x370","name":"Kevin Coleman Jr.","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR148"},
+{"id":"x371","name":"Noah Whittington","pos":"RB","team":"FA","adp":240.0,"proj":0.0,"pr":"RB110"},
+{"id":"x372","name":"Andrew Armstrong","pos":"WR","team":"Kansas City Chiefs","adp":240.0,"proj":0.0,"pr":"WR148"},
+{"id":"x373","name":"Noah Gray","pos":"TE","team":"Kansas City Chiefs","adp":240.0,"proj":47.1,"pr":"TE60"},
+{"id":"x374","name":"Isaiah Williams","pos":"WR","team":"New York Jets","adp":240.0,"proj":32.6,"pr":"WR154"},
+{"id":"x375","name":"Demarcus Robinson","pos":"WR","team":"San Francisco 49ers","adp":240.0,"proj":26.0,"pr":"WR154"},
+{"id":"x376","name":"Jackson Hawes","pos":"TE","team":"Buffalo Bills","adp":240.0,"proj":25.4,"pr":"TE60"},
+{"id":"x377","name":"Tyrell Shavers","pos":"WR","team":"Buffalo Bills","adp":240.0,"proj":24.2,"pr":"WR154"},
+{"id":"x378","name":"Adam Trautman","pos":"TE","team":"Denver Broncos","adp":240.0,"proj":22.3,"pr":"TE60"},
+{"id":"x379","name":"Kyle Juszczyk","pos":"RB","team":"San Francisco 49ers","adp":240.0,"proj":14.4,"pr":"RB111"},
+{"id":"x380","name":"Tyler Huntley","pos":"QB","team":"Baltimore Ravens","adp":240.0,"proj":12.7,"pr":"QB51"},
+{"id":"x381","name":"Ja'Lynn Polk","pos":"WR","team":"New Orleans Saints","adp":240.0,"proj":0.0,"pr":"WR154"},
+{"id":"x382","name":"Mecole Hardman Jr.","pos":"WR","team":"Buffalo Bills","adp":240.0,"proj":0.0,"pr":"WR154"},
+{"id":"x383","name":"Brycen Tremayne","pos":"WR","team":"Carolina Panthers","adp":240.0,"proj":0.0,"pr":"WR154"},
+{"id":"x384","name":"Desmond Reid","pos":"RB","team":"FA","adp":240.0,"proj":0.0,"pr":"RB111"},
+{"id":"x385","name":"Tanner Koziol","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE60"},
+{"id":"x386","name":"Marlin Klein","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE60"},
+{"id":"x387","name":"Odell Beckham Jr.","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR154"},
+{"id":"x388","name":"Eli Raridon","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE60"},
+{"id":"x389","name":"Caleb Douglas","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR154"},
+{"id":"x390","name":"Daniel Bellinger","pos":"TE","team":"Tennessee Titans","adp":240.0,"proj":28.4,"pr":"TE66"},
+{"id":"x391","name":"Nick Mullens","pos":"QB","team":"Jacksonville Jaguars","adp":240.0,"proj":12.0,"pr":"QB52"},
+{"id":"x392","name":"Malachi Corley","pos":"WR","team":"Cleveland Browns","adp":240.0,"proj":10.0,"pr":"WR162"},
+{"id":"x393","name":"Brevin Jordan","pos":"TE","team":"Houston Texans","adp":240.0,"proj":5.4,"pr":"TE66"},
+{"id":"x394","name":"Sione Vaki","pos":"RB","team":"Detroit Lions","adp":240.0,"proj":3.0,"pr":"RB113"},
+{"id":"x395","name":"Terion Stewart","pos":"RB","team":"FA","adp":240.0,"proj":0.0,"pr":"RB113"},
+{"id":"x396","name":"Taysom Hill","pos":"TE","team":"FA","adp":240.0,"proj":0.0,"pr":"TE66"},
+{"id":"x397","name":"DeAndre Hopkins","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR162"},
+{"id":"x398","name":"Greg Bell","pos":"RB","team":"FA","adp":240.0,"proj":0.0,"pr":"RB113"},
+{"id":"x399","name":"Taylen Green","pos":"QB","team":"FA","adp":240.0,"proj":0.0,"pr":"QB52"},
+{"id":"x400","name":"Eric Rivers","pos":"WR","team":"FA","adp":240.0,"proj":0.0,"pr":"WR162"},
+{"id":"x401","name":"CJ Daniels","pos":"WR","team":"FA","adp":401.0,"proj":60.0,"pr":""},
+{"id":"x402","name":"Darius Cooper","pos":"WR","team":"Philadelphia Eagles","adp":402.0,"proj":46.6,"pr":""},
+{"id":"x403","name":"Noah Fant","pos":"TE","team":"New Orleans Saints","adp":403.0,"proj":36.3,"pr":""},
+{"id":"x404","name":"Cade Stover","pos":"TE","team":"Houston Texans","adp":404.0,"proj":31.1,"pr":""},
+{"id":"x405","name":"Derek Carr","pos":"QB","team":"FA","adp":405.0,"proj":29.2,"pr":""},
+{"id":"x406","name":"Kevin Austin","pos":"WR","team":"New Orleans Saints","adp":406.0,"proj":28.9,"pr":""},
+{"id":"x407","name":"Van Jefferson","pos":"WR","team":"Washington Commanders","adp":407.0,"proj":27.2,"pr":""},
+{"id":"x408","name":"Joshua Palmer","pos":"WR","team":"Buffalo Bills","adp":408.0,"proj":26.6,"pr":""},
+{"id":"x409","name":"Austin Hooper","pos":"TE","team":"Atlanta Falcons","adp":409.0,"proj":26.2,"pr":""},
+{"id":"x410","name":"Josh Oliver","pos":"TE","team":"Minnesota Vikings","adp":410.0,"proj":26.1,"pr":""},
+{"id":"x411","name":"Jeremy Ruckert","pos":"TE","team":"New York Jets","adp":411.0,"proj":25.7,"pr":""},
+{"id":"x412","name":"Tommy Tremble","pos":"TE","team":"Carolina Panthers","adp":412.0,"proj":25.3,"pr":""},
+{"id":"x413","name":"John Bates","pos":"TE","team":"Washington Commanders","adp":413.0,"proj":25.3,"pr":""},
+{"id":"x414","name":"Drew Sample","pos":"TE","team":"Cincinnati Bengals","adp":414.0,"proj":25.1,"pr":""},
+{"id":"x415","name":"Luke Schoonmaker","pos":"TE","team":"Dallas Cowboys","adp":415.0,"proj":24.9,"pr":""},
+{"id":"x416","name":"Ben Sinnott","pos":"TE","team":"Washington Commanders","adp":416.0,"proj":24.9,"pr":""},
+{"id":"x417","name":"Grant Calcaterra","pos":"TE","team":"Philadelphia Eagles","adp":417.0,"proj":24.0,"pr":""},
+{"id":"x418","name":"Brevyn Spann-Ford","pos":"TE","team":"Dallas Cowboys","adp":418.0,"proj":23.4,"pr":""},
+{"id":"x419","name":"Brock Wright","pos":"TE","team":"Detroit Lions","adp":419.0,"proj":21.8,"pr":""},
+{"id":"x420","name":"Xavier Smith","pos":"WR","team":"Los Angeles Rams","adp":420.0,"proj":20.6,"pr":""},
+{"id":"x421","name":"Dameon Pierce","pos":"RB","team":"Philadelphia Eagles","adp":421.0,"proj":20.3,"pr":""},
+{"id":"x422","name":"Lil'Jordan Humphrey","pos":"WR","team":"Denver Broncos","adp":422.0,"proj":20.0,"pr":""},
+{"id":"x423","name":"Tyler Badie","pos":"RB","team":"Denver Broncos","adp":423.0,"proj":18.9,"pr":""},
+{"id":"x424","name":"Trey Lance","pos":"QB","team":"Los Angeles Chargers","adp":424.0,"proj":14.6,"pr":""},
+{"id":"x425","name":"Connor Heyward","pos":"TE","team":"Las Vegas Raiders","adp":425.0,"proj":12.8,"pr":""},
+{"id":"x426","name":"Will Levis","pos":"QB","team":"Tennessee Titans","adp":426.0,"proj":12.7,"pr":""},
+{"id":"x427","name":"Spencer Rattler","pos":"QB","team":"New Orleans Saints","adp":427.0,"proj":12.7,"pr":""},
+{"id":"x428","name":"Tyson Bagent","pos":"QB","team":"Chicago Bears","adp":428.0,"proj":12.5,"pr":""},
+{"id":"x429","name":"Quinn Ewers","pos":"QB","team":"Miami Dolphins","adp":429.0,"proj":12.4,"pr":""},
+{"id":"x430","name":"Jarrett Stidham","pos":"QB","team":"Denver Broncos","adp":430.0,"proj":12.2,"pr":""},
+{"id":"x431","name":"Davis Mills","pos":"QB","team":"Houston Texans","adp":431.0,"proj":12.0,"pr":""},
+{"id":"x432","name":"Kyle Allen","pos":"QB","team":"Buffalo Bills","adp":432.0,"proj":12.0,"pr":""},
+{"id":"x433","name":"Mitchell Trubisky","pos":"QB","team":"Tennessee Titans","adp":433.0,"proj":11.9,"pr":""},
+{"id":"x434","name":"Jaleel McLaughlin","pos":"RB","team":"Denver Broncos","adp":434.0,"proj":11.9,"pr":""},
+{"id":"x435","name":"Dillon Gabriel","pos":"QB","team":"Cleveland Browns","adp":435.0,"proj":11.9,"pr":""},
+{"id":"x436","name":"Andy Dalton","pos":"QB","team":"Philadelphia Eagles","adp":436.0,"proj":11.8,"pr":""},
+{"id":"x437","name":"Mason Rudolph","pos":"QB","team":"Pittsburgh Steelers","adp":437.0,"proj":11.7,"pr":""},
+{"id":"x438","name":"Teddy Bridgewater","pos":"QB","team":"Detroit Lions","adp":438.0,"proj":11.6,"pr":""},
+{"id":"x439","name":"Tip Reiman","pos":"TE","team":"Arizona Cardinals","adp":439.0,"proj":11.4,"pr":""},
+{"id":"x440","name":"Mo Alie-Cox","pos":"TE","team":"Indianapolis Colts","adp":440.0,"proj":11.4,"pr":""},
+{"id":"x441","name":"Josh Johnson","pos":"QB","team":"Cincinnati Bengals","adp":441.0,"proj":11.3,"pr":""},
+{"id":"x442","name":"Lucas Krull","pos":"TE","team":"Denver Broncos","adp":442.0,"proj":11.2,"pr":""},
+{"id":"x443","name":"Jeremy McNichols","pos":"RB","team":"Washington Commanders","adp":443.0,"proj":10.3,"pr":""},
+{"id":"x444","name":"Devin Singletary","pos":"RB","team":"New York Giants","adp":444.0,"proj":9.8,"pr":""},
+{"id":"x445","name":"Ty Chandler","pos":"RB","team":"New Orleans Saints","adp":445.0,"proj":9.0,"pr":""},
+{"id":"x446","name":"Nate Adkins","pos":"TE","team":"Denver Broncos","adp":446.0,"proj":8.3,"pr":""},
+{"id":"x447","name":"Davis Allen","pos":"TE","team":"Los Angeles Rams","adp":447.0,"proj":8.2,"pr":""},
+{"id":"x448","name":"Foster Moreau","pos":"TE","team":"Houston Texans","adp":448.0,"proj":8.2,"pr":""},
+{"id":"x449","name":"Luke Farrell","pos":"TE","team":"San Francisco 49ers","adp":449.0,"proj":7.6,"pr":""},
+{"id":"x450","name":"Gunner Olszewski","pos":"WR","team":"New York Giants","adp":450.0,"proj":7.6,"pr":""},
+{"id":"x451","name":"Isaiah Hodgins","pos":"WR","team":"New York Giants","adp":451.0,"proj":7.2,"pr":""},
+{"id":"x452","name":"Quintin Morris","pos":"TE","team":"Jacksonville Jaguars","adp":452.0,"proj":7.1,"pr":""},
+{"id":"x453","name":"Tylan Wallace","pos":"WR","team":"Cleveland Browns","adp":453.0,"proj":6.6,"pr":""},
+{"id":"x454","name":"Michael Carter","pos":"RB","team":"Tennessee Titans","adp":454.0,"proj":6.6,"pr":""},
+{"id":"x455","name":"Cody White","pos":"WR","team":"Seattle Seahawks","adp":455.0,"proj":6.5,"pr":""},
+{"id":"x456","name":"Hunter Luepke","pos":"RB","team":"Dallas Cowboys","adp":456.0,"proj":6.5,"pr":""},
+{"id":"x457","name":"Payne Durham","pos":"TE","team":"Tampa Bay Buccaneers","adp":457.0,"proj":6.1,"pr":""},
+{"id":"x458","name":"Charlie Woerner","pos":"TE","team":"Atlanta Falcons","adp":458.0,"proj":6.0,"pr":""},
+{"id":"x459","name":"Xavier Restrepo","pos":"WR","team":"Tennessee Titans","adp":459.0,"proj":5.8,"pr":""},
+{"id":"x460","name":"Arian Smith","pos":"WR","team":"New York Jets","adp":460.0,"proj":5.6,"pr":""}
+];
+
+// ── STATE ─────────────────────────────────────────────────────
+let S={
+  started:false,userSlot:1,pickNum:0,picks:[],
+  drafted:new Set(),rosters:Array.from({length:TEAMS},()=>[]),
+  filter:'ALL',search:'',aiRunning:false,done:false,showDrafted:false,
+  teamNames:[],page:'setup'
+};
+
+// Draft history stored in localStorage
+function loadHistory(){
+  try{return JSON.parse(localStorage.getItem('mb_history')||'[]');}catch(e){return[];}
+}
+function saveHistory(h){try{localStorage.setItem('mb_history',JSON.stringify(h));}catch(e){}}
+function addToHistory(entry){
+  const h=loadHistory();
+  h.unshift(entry);
+  if(h.length>50)h.pop();
+  saveHistory(h);
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function isMyTurn(){return !S.done&&teamAt(S.pickNum)===(S.userSlot-1);}
+function avail(){return P.filter(p=>!S.drafted.has(p.id));}
+function pc(r){const c={QB:0,RB:0,WR:0,TE:0};r.forEach(p=>c[p.pos]++);return c;}
+function stacks(r){const t={};r.forEach(p=>{if(p.team&&p.team!=='FA')t[p.team]=(t[p.team]||0)+1;});return t;}
+function qbTeams(r){const s=new Set();r.forEach(p=>{if(p.pos==='QB'&&p.team&&p.team!=='FA')s.add(p.team);});return s;}
+function grade(p,n){const d=(n+1)-p.adp;return d>=8?'A':d>=2?'B':d>=-4?'C':'D';}
+function avgGrade(picks){
+  if(!picks.length)return'—';
+  const gs=picks.map(pk=>grade(pk.player,pk.n));
+  const score=gs.reduce((s,g)=>s+({A:4,B:3,C:2,D:1}[g]||2),0)/gs.length;
+  if(score>=3.5)return'A';if(score>=2.5)return'B';if(score>=1.5)return'C';return'D';
+}
+function toast(msg){
+  const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');
+  setTimeout(()=>e.classList.remove('show'),2500);
+}
+function navTo(page){
+  S.page=page;
+  document.querySelectorAll('.hnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nav-'+page).classList.add('active');
+  document.getElementById('view').innerHTML=(page==='history')?renderHistory():renderMain();
+  updateHeader();
+}
+
+// ── AI PICK ───────────────────────────────────────────────────
+function aiPick(ti){
+  const av=avail();if(!av.length)return null;
+  const cur=S.pickNum+1,lo=cur-8,hi=cur+22;
+  const roster=S.rosters[ti],counts=pc(roster),qbs=roster.filter(r=>r.pos==='QB');
+  let pool=av.filter(p=>p.adp>=lo&&p.adp<=hi&&counts[p.pos]<CAPS[p.pos]);
+  if(!pool.length)pool=av.filter(p=>counts[p.pos]<CAPS[p.pos]).slice(0,20);
+  if(!pool.length)pool=av.slice(0,5);
+  const round=roundOf(S.pickNum);
+  function score(p){
+    let s=-(p.adp-cur)*1.3;
+    if(round<=5&&(p.pos==='RB'||p.pos==='WR'))s+=4;
+    if(p.pos==='QB'&&counts.QB===0&&round>=6&&round<=11)s+=8;
+    if(p.pos==='TE'&&counts.TE===0&&round>=5&&round<=11)s+=6;
+    qbs.forEach(q=>{if(q.team===p.team&&(p.pos==='WR'||p.pos==='TE'))s+=5;});
+    s+=(Math.random()*4-2);
+    return s;
+  }
+  pool.sort((a,b)=>score(b)-score(a));
+  return pool[0];
+}
+
+// ── EXECUTION ─────────────────────────────────────────────────
+function exec(player,ti){
+  S.drafted.add(player.id);S.rosters[ti].push(player);
+  S.picks.push({n:S.pickNum,ti,player});
+  S.pickNum++;if(S.pickNum>=TOTAL)S.done=true;
+}
+function userDraft(id){
+  if(S.done||S.aiRunning||!isMyTurn())return;
+  const p=P.find(x=>x.id===id);if(!p||S.drafted.has(p.id))return;
+  const g=grade(p,S.pickNum);exec(p,S.userSlot-1);
+  toast('✅ '+p.name+' · '+p.pr+' · Grade: '+g);
+  setTimeout(runAI,150);
+}
+function doAuto(){
+  if(S.done||S.aiRunning||!isMyTurn())return;
+  const p=aiPick(S.userSlot-1);if(!p)return;
+  exec(p,S.userSlot-1);toast('⚡ Auto: '+p.name+' · '+p.pr);
+  setTimeout(runAI,150);
+}
+function runAI(){
+  if(S.done||isMyTurn()){
+    if(S.done) finalizeDraft();
+    else render();
+    return;
+  }
+  S.aiRunning=true;updateHeader();
+  const step=()=>{
+    if(S.done||isMyTurn()){
+      S.aiRunning=false;
+      if(S.done)finalizeDraft();else render();
+      return;
+    }
+    const ti=teamAt(S.pickNum),pk=aiPick(ti);if(pk)exec(pk,ti);
+    setTimeout(step,75);
+  };
+  step();
+}
+
+function finalizeDraft(){
+  // Build history entry
+  const myR=S.rosters[S.userSlot-1];
+  const myPicks=S.picks.filter(pk=>pk.ti===(S.userSlot-1));
+  const myPc=pc(myR);
+  const mySt=stacks(myR);
+  const topStk=Object.entries(mySt).sort((a,b)=>b[1]-a[1])[0];
+  const ag=avgGrade(myPicks);
+  const entry={
+    id:Date.now(),
+    date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+    slot:S.userSlot,
+    picks:myPicks.map(pk=>({
+      round:roundOf(pk.n),overall:pk.n+1,
+      id:pk.player.id,name:pk.player.name,pos:pk.player.pos,
+      team:pk.player.team,adp:pk.player.adp,pr:pk.player.pr,
+      grade:grade(pk.player,pk.n)
+    })),
+    build:`${myPc.QB}QB/${myPc.RB}RB/${myPc.WR}WR/${myPc.TE}TE`,
+    avgGrade:ag,
+    topStack:topStk?topStk[0]:'—',
+    projPts:Math.round(myR.reduce((s,p)=>s+p.proj,0))
+  };
+  addToHistory(entry);
+  render();
+  // Show analysis modal after a beat
+  setTimeout(()=>showAnalysis(entry),400);
+}
+
+// ── ANALYSIS MODAL ────────────────────────────────────────────
+function showAnalysis(entry){
+  const gradeColor={A:'var(--ga)',B:'var(--gb)',C:'var(--gc)',D:'var(--gd)'}[entry.avgGrade]||'var(--text2)';
+  const gradeMsg={A:'Elite roster construction.',B:'Solid draft with good value.',C:'Average — some reaches hurt.',D:'Tough draft, lots of reaches.'}[entry.avgGrade]||'';
+  const pickRows=entry.picks.map(pk=>{
+    const diff=(pk.overall-pk.adp).toFixed(1);
+    const diffStr=diff>0?'+'+diff:diff;
+    const diffColor=diff<=-2?'var(--ga)':diff<=2?'var(--text2)':'var(--gd)';
+    return`<div class="pick-log-row">
+      <span style="color:var(--text3)">${pk.round}</span>
+      <span><span class="pbadge ${pk.pos}">${pk.pos}</span></span>
+      <span class="bold">${pk.name}</span>
+      <span style="color:${diffColor}">${diffStr}</span>
+      <span><span class="grade-pill g${pk.grade}">${pk.grade}</span></span>
+    </div>`;
+  }).join('');
+
+  const aGrades=entry.picks.filter(p=>p.grade==='A').length;
+  const bGrades=entry.picks.filter(p=>p.grade==='B').length;
+
+  const modal=document.createElement('div');
+  modal.className='analysis-panel';
+  modal.id='analysis-modal';
+  modal.style.display='flex';
+  modal.innerHTML=`<div class="analysis-card">
+    <button class="btn btn-ghost analysis-close" onclick="document.getElementById('analysis-modal').remove()">✕ Close</button>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+      <div class="grade-ring" style="color:${gradeColor};border-color:${gradeColor}">${entry.avgGrade}</div>
+      <div>
+        <h3>Draft Complete</h3>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">${gradeMsg}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Slot ${entry.slot} · ${entry.build} · ${entry.date}</div>
+      </div>
+    </div>
+    <div class="analysis-grid">
+      <div class="ag-card"><div class="ag-lbl">Avg Grade</div><div class="ag-val" style="color:${gradeColor}">${entry.avgGrade}</div><div class="ag-sub">${gradeMsg.split('.')[0]}</div></div>
+      <div class="ag-card"><div class="ag-lbl">A/B Grades</div><div class="ag-val" style="color:var(--ga)">${aGrades+bGrades}</div><div class="ag-sub">${aGrades} A-grades, ${bGrades} B-grades</div></div>
+      <div class="ag-card"><div class="ag-lbl">Top Stack</div><div class="ag-val" style="font-size:14px;color:var(--wr)">${entry.topStack}</div><div class="ag-sub">Correlation stack</div></div>
+      <div class="ag-card"><div class="ag-lbl">Proj Pts</div><div class="ag-val">${entry.projPts}</div><div class="ag-sub">Season projection</div></div>
+      <div class="ag-card"><div class="ag-lbl">Draft Slot</div><div class="ag-val">#${entry.slot}</div><div class="ag-sub">Snake position</div></div>
+      <div class="ag-card"><div class="ag-lbl">Build</div><div class="ag-val" style="font-size:13px">${entry.build}</div><div class="ag-sub">Roster composition</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px">Your Picks</div>
+    <div class="pick-log">
+      <div class="pick-log-hdr"><span>Rnd</span><span>Pos</span><span>Player</span><span>vs ADP</span><span>Grade</span></div>
+      ${pickRows}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-gold" onclick="document.getElementById('analysis-modal').remove();navTo('history')" style="flex:1">📊 View Full History</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('analysis-modal').remove();resetDraft()">↺ New Draft</button>
+    </div>
+  </div>`;
+  document.getElementById('view').appendChild(modal);
+}
+
+// ── HISTORY PAGE ──────────────────────────────────────────────
+function renderHistory(){
+  const h=loadHistory();
+  if(!h.length)return`<div class="history-page">
+    <h2>Draft History</h2><p class="page-sub">Your mock draft analytics will appear here.</p>
+    <div class="empty-history"><div class="ei">📋</div><p>No drafts yet. Run your first mock to start tracking your tendencies.</p></div>
+  </div>`;
+
+  // Aggregate stats
+  const totalDrafts=h.length;
+  const allPicks=h.flatMap(d=>d.picks);
+  const aCount=allPicks.filter(p=>p.grade==='A').length;
+  const bCount=allPicks.filter(p=>p.grade==='B').length;
+  const valueRate=allPicks.length?Math.round((aCount+bCount)/allPicks.length*100):0;
+
+  // Position pick frequency
+  const posFreq={QB:0,RB:0,WR:0,TE:0};
+  allPicks.forEach(p=>posFreq[p.pos]=(posFreq[p.pos]||0)+1);
+  const total=allPicks.length||1;
+  const posColor={QB:'var(--qb)',RB:'var(--rb)',WR:'var(--wr)',TE:'var(--te)'};
+
+  // Early round (1-6) position tendencies
+  const earlyPicks=allPicks.filter(p=>p.round<=6);
+  const earlyFreq={QB:0,RB:0,WR:0,TE:0};
+  earlyPicks.forEach(p=>earlyFreq[p.pos]=(earlyFreq[p.pos]||0)+1);
+  const earlyTotal=earlyPicks.length||1;
+
+  // Most drafted players
+  const playerFreq={};
+  allPicks.forEach(p=>{playerFreq[p.id]=(playerFreq[p.id]||{count:0,name:p.name,pos:p.pos,adp:p.adp,grades:[]});playerFreq[p.id].count++;playerFreq[p.id].grades.push(p.grade);});
+  const topPlayers=Object.values(playerFreq).sort((a,b)=>b.count-a.count).slice(0,10);
+
+  const avgProj=totalDrafts?Math.round(h.reduce((s,d)=>s+d.projPts,0)/totalDrafts):0;
+  const gradeScore=g=>({A:4,B:3,C:2,D:1}[g]||2);
+  const overallAvg=allPicks.length?allPicks.reduce((s,p)=>s+gradeScore(p.grade),0)/allPicks.length:2;
+  const overallGrade=overallAvg>=3.5?'A':overallAvg>=2.5?'B':overallAvg>=1.5?'C':'D';
+  const gradeColor={A:'var(--ga)',B:'var(--gb)',C:'var(--gc)',D:'var(--gd)'};
+
+  const historyRows=h.slice(0,20).map((d,i)=>{
+    const gc=gradeColor[d.avgGrade]||'var(--text2)';
+    return`<div class="dht-row">
+      <span>#${i+1}</span>
+      <span class="bold">${d.date}</span>
+      <span>Slot ${d.slot}</span>
+      <span>${d.build}</span>
+      <span><span class="grade-pill g${d.avgGrade}">${d.avgGrade}</span></span>
+      <span style="color:var(--wr)">${d.topStack}</span>
+    </div>`;
+  }).join('');
+
+  const ppRows=topPlayers.map(p=>{
+    const avgG=p.grades;const gs=avgG.reduce((s,g)=>s+gradeScore(g),0)/avgG.length;
+    const pg=gs>=3.5?'A':gs>=2.5?'B':gs>=1.5?'C':'D';
+    const aRate=Math.round(avgG.filter(g=>g==='A').length/avgG.length*100);
+    return`<div class="pp-row">
+      <span class="pp-name">${p.name} <span class="pbadge ${p.pos}" style="margin-left:4px">${p.pos}</span></span>
+      <span>${p.count}×</span>
+      <span>ADP ${p.adp.toFixed(1)}</span>
+      <span><span class="grade-pill g${pg}">${pg} avg</span></span>
+      <span style="color:var(--ga)">${aRate}% A-grade</span>
+    </div>`;
+  }).join('');
+
+  return`<div class="history-page">
+    <h2>Draft History & Analytics</h2>
+    <p class="page-sub">Tracking your pick tendencies across ${totalDrafts} mock draft${totalDrafts!==1?'s':''}.</p>
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-card-lbl">Drafts</div><div class="stat-card-val">${totalDrafts}</div><div class="stat-card-sub">Total mocks run</div></div>
+      <div class="stat-card"><div class="stat-card-lbl">Overall Grade</div><div class="stat-card-val" style="color:${gradeColor[overallGrade]}">${overallGrade}</div><div class="stat-card-sub">Draft quality</div></div>
+      <div class="stat-card"><div class="stat-card-lbl">Value Rate</div><div class="stat-card-val" style="color:var(--ga)">${valueRate}%</div><div class="stat-card-sub">A/B grade picks</div></div>
+      <div class="stat-card"><div class="stat-card-lbl">Avg Proj Pts</div><div class="stat-card-val">${avgProj}</div><div class="stat-card-sub">Per draft</div></div>
+      <div class="stat-card"><div class="stat-card-lbl">A-Grades</div><div class="stat-card-val" style="color:var(--ga)">${aCount}</div><div class="stat-card-sub">Value steals</div></div>
+    </div>
+    <div class="trend-grid">
+      <div class="trend-card">
+        <h4>Overall Position Distribution</h4>
+        ${['QB','RB','WR','TE'].map(pos=>`<div class="trend-bar-row">
+          <span class="trend-bar-label" style="color:${posColor[pos]}">${pos}</span>
+          <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${Math.round((posFreq[pos]||0)/total*100)}%;background:${posColor[pos]}"></div></div>
+          <span class="trend-bar-pct">${Math.round((posFreq[pos]||0)/total*100)}%</span>
+        </div>`).join('')}
+      </div>
+      <div class="trend-card">
+        <h4>Early Rounds (1–6) Tendencies</h4>
+        ${['QB','RB','WR','TE'].map(pos=>`<div class="trend-bar-row">
+          <span class="trend-bar-label" style="color:${posColor[pos]}">${pos}</span>
+          <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${Math.round((earlyFreq[pos]||0)/earlyTotal*100)}%;background:${posColor[pos]}"></div></div>
+          <span class="trend-bar-pct">${Math.round((earlyFreq[pos]||0)/earlyTotal*100)}%</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="history-section-title">Most Drafted Players</div>
+    <div class="player-prefs" style="margin-bottom:20px">
+      <div class="pp-hdr"><span>Player</span><span>Drafted</span><span>ADP</span><span>Avg Grade</span><span>A-Grade Rate</span></div>
+      ${ppRows||'<div style="padding:16px;color:var(--text3)">No data yet.</div>'}
+    </div>
+    <div class="history-section-title">Draft Log</div>
+    <div class="draft-history-table">
+      <div class="dht-hdr"><span>#</span><span>Date</span><span>Slot</span><span>Build</span><span>Grade</span><span>Top Stack</span></div>
+      ${historyRows}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="btn btn-gold" onclick="navTo('draft')">⚑ Start New Draft</button>
+      <button class="btn btn-danger" onclick="clearHistory()">🗑 Clear History</button>
+    </div>
+  </div>`;
+}
+
+function clearHistory(){
+  if(confirm('Clear all draft history?')){localStorage.removeItem('mb_history');navTo('history');}
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function updateHeader(){
+  const hp=document.getElementById('hpick'),ab=document.getElementById('auto-btn'),
+        rb=document.getElementById('reset-btn'),tb=document.getElementById('tog-btn'),
+        nav=document.getElementById('hnav');
+  nav.style.display=S.started?'flex':'none';
+  rb.style.display=S.started?'block':'none';
+  tb.style.display=S.started&&S.page==='draft'?'block':'none';
+  if(!S.started){ab.style.display='none';hp.textContent='';return;}
+  if(S.done){ab.style.display='none';hp.textContent='✅ Complete';}
+  else{
+    ab.style.display=(isMyTurn()&&!S.aiRunning&&S.page==='draft')?'block':'none';
+    hp.textContent='R'+roundOf(S.pickNum)+' · #'+(S.pickNum+1)+'/'+TOTAL;
+  }
+}
+
+function render(){
+  if(S.page==='history'){document.getElementById('view').innerHTML=renderHistory();}
+  else if(!S.started){document.getElementById('view').innerHTML=renderSetup();}
+  else{document.getElementById('view').innerHTML=renderMain();}
+  updateHeader();
+}
+
+function renderSetup(){return`<div class="setup"><div class="setup-inner">
+  <div class="setup-hero">
+    <h1>Best Ball Mock Draft<br>Simulator</h1>
+    <p>Practice Underdog Big Board drafts vs. realistic AI using real 2026 ADP. Pure best ball.</p>
+  </div>
+  <div class="setup-cards">
+    <div class="setup-card"><div class="setup-card-icon">🏆</div><div class="setup-card-label">Contest</div><div class="setup-card-val">Big Board</div></div>
+    <div class="setup-card"><div class="setup-card-icon">📋</div><div class="setup-card-label">Format</div><div class="setup-card-val">20 Rounds</div></div>
+    <div class="setup-card"><div class="setup-card-icon">👥</div><div class="setup-card-label">Field</div><div class="setup-card-val">12 Teams</div></div>
+    <div class="setup-card"><div class="setup-card-icon">⚡</div><div class="setup-card-label">Scoring</div><div class="setup-card-val">Half-PPR</div></div>
+  </div>
+  <div class="lineup-section">
+    <div class="section-title">Weekly Starting Lineup (auto-set)</div>
+    <div class="lineup-pills">
+      <span class="lp lpQB">QB</span><span class="lp lpRB">RB</span><span class="lp lpRB">RB</span>
+      <span class="lp lpWR">WR</span><span class="lp lpWR">WR</span><span class="lp lpWR">WR</span>
+      <span class="lp lpTE">TE</span><span class="lp lpFL">FLEX</span>
+    </div>
+  </div>
+  <div class="slot-section">
+    <div class="section-title">Choose Your Draft Slot</div>
+    <div class="slot-grid">
+      ${Array.from({length:12},(_,i)=>`<button class="slot-btn" onclick="startDraft(${i+1})">${i+1}</button>`).join('')}
+    </div>
+
+  </div>
+</div></div>`;}
+
+function pListHTML(){
+  const myR=S.rosters[S.userSlot-1],qt=qbTeams(myR),myTurn=isMyTurn()&&!S.aiRunning;
+  // Apply pos + search filter across ALL players first
+  const filtered=P.filter(p=>{
+    if(S.filter!=='ALL'&&p.pos!==S.filter)return false;
+    if(S.search){const q=S.search.toLowerCase();if(!p.name.toLowerCase().includes(q)&&!p.team.toLowerCase().includes(q))return false;}
+    return true;
+  });
+  // Slice only the UNDRAFTED pool so late-round picks always appear
+  const available=filtered.filter(p=>!S.drafted.has(p.id)).slice(0,120);
+  const draftedShown=S.showDrafted?filtered.filter(p=>S.drafted.has(p.id)):[];
+  const shown=[...available,...draftedShown];
+  function rowHTML(p){
+    const gone=S.drafted.has(p.id);
+    const g=gone?'':grade(p,S.pickNum);
+    const hasStk=!gone&&p.pos!=='QB'&&qt.has(p.team);
+    const goneClass=gone?'gone vis':'';
+    return`<div class="prow ${goneClass}" ${myTurn&&!gone?`onclick="userDraft('${p.id}')"`:''}>
+      <span class="padp">${p.adp.toFixed(1)}</span>
+      <span class="pbadge ${p.pos}">${p.pos}</span>
+      <div class="pinfo"><div class="pname">${p.name}</div><div class="pteam">${p.pr} · ${p.team}</div></div>
+      ${hasStk?'<span class="stk">STK</span>':''}
+      ${!gone?`<span class="grade g${g}">${g}</span>`:''}
+      <span class="pproj">${p.proj>0?Math.round(p.proj):'—'}</span>
+    </div>`;
+  }
+  return shown.map(rowHTML).join('');
+}
+
+function renderMain(){
+  const myR=S.rosters[S.userSlot-1],myPc=pc(myR),mySt=stacks(myR);
+  const topStk=Object.entries(mySt).sort((a,b)=>b[1]-a[1])[0];
+  const myTurn=isMyTurn()&&!S.aiRunning;
+  const curTeam=S.done?-1:teamAt(S.pickNum);
+  const round=roundOf(S.pickNum);
+
+  // Status box
+  let status;
+  if(S.done){
+    status=`<div class="pick-status" style="background:rgba(52,211,153,.04)">
+      <div class="ps-eyebrow" style="color:var(--rb)">✅ DRAFT COMPLETE</div>
+      <div class="ps-main" style="font-size:13px">${myPc.QB}QB · ${myPc.RB}RB · ${myPc.WR}WR · ${myPc.TE}TE</div>
+      <div class="ps-sub">Analysis saved to history</div></div>`;
+  }else if(myTurn){
+    status=`<div class="pick-status ps-turn">
+      <div class="ps-eyebrow" style="color:var(--rb)">🟢 YOUR PICK</div>
+      <div class="ps-main">Round ${round} · Pick ${S.pickNum%TEAMS+1}</div>
+      <div class="ps-sub">Overall #${S.pickNum+1} · ${avail().length} available</div></div>`;
+  }else{
+    const tn=S.teamNames[curTeam]||'Team '+(curTeam+1);
+    status=`<div class="pick-status">
+      <div class="ps-eyebrow" style="color:${S.aiRunning?'var(--te)':'var(--text3)'}">
+        ${S.aiRunning?'🤖 AI PICKING':'⏳ ON THE CLOCK'}</div>
+      <div class="ps-main">${tn}</div>
+      <div class="ps-sub">Round ${round} · Overall #${S.pickNum+1}</div></div>`;
+  }
+
+  // Pick order strip
+  const poHTML=Array.from({length:TEAMS},(_,i)=>{
+    const isYou=i===(S.userSlot-1),isCur=!S.done&&i===curTeam&&!S.aiRunning;
+    return`<div class="po${isYou?' po-you':''}${isCur&&!isYou?' po-cur':''}" title="${isYou?'YOU':S.teamNames[i]}">${isYou?'YOU':i+1}</div>`;
+  }).join('');
+
+  // Board — column-per-team
+  const pbtr=Array.from({length:TEAMS},()=>Array(ROUNDS).fill(null));
+  S.picks.forEach(pk=>{pbtr[pk.ti][Math.floor(pk.n/TEAMS)]=pk.player;});
+  const clockTi=S.done?-1:teamAt(S.pickNum);
+  const clockRound=S.done?-1:Math.floor(S.pickNum/TEAMS);
+
+  let boardHTML='';
+  for(let t=0;t<TEAMS;t++){
+    const isYou=t===(S.userSlot-1);
+    const tn=S.teamNames[t]||'Team '+(t+1);
+    boardHTML+=`<div class="col-hdr${isYou?' you':''}">
+      ${isYou?'YOU':'T'+(t+1)}
+      <div class="team-name">${tn}</div>
+    </div>`;
+  }
+  for(let r=0;r<ROUNDS;r++){
+    for(let t=0;t<TEAMS;t++){
+      const player=pbtr[t][r];
+      const isYou=t===(S.userSlot-1);
+      const isActive=!S.done&&t===clockTi&&r===clockRound;
+      let cls='bcell';
+      if(!player)cls+=' empty';
+      if(isYou&&player)cls+=' mine';
+      if(isActive)cls+=' onclock';
+      boardHTML+=`<div class="${cls}">
+        <div class="cell-rd">Rd ${r+1}</div>
+        ${player?`<div class="cell-name">${player.name}</div>
+        <span class="cell-badge ${player.pos}">${player.pos}</span>
+        <div class="cell-adp">ADP ${player.adp.toFixed(1)}</div>`:''}
+      </div>`;
+    }
+  }
+
+  // Roster slots
+  const used=new Set();
+  // Fill starting slots first (positional), then bench (any pos)
+  const starters=SLOTS.filter(s=>s.start);
+  const bench=SLOTS.filter(s=>!s.start);
+  // Assign starters positionally
+  starters.forEach(slot=>{
+    for(let i=0;i<myR.length;i++){if(!used.has(i)&&slot.p.includes(myR[i].pos)){slot._player=myR[i];used.add(i);break;}}
+  });
+  // Assign bench from remaining
+  bench.forEach(slot=>{
+    for(let i=0;i<myR.length;i++){if(!used.has(i)){slot._player=myR[i];used.add(i);break;}}
+  });
+  const rosterHTML=`
+    <div class="rslot-divider">Starting Lineup</div>
+    ${starters.map(slot=>`<div class="rslot starter">
+      <span class="rslot-pos ${slot._player?slot._player.pos:''}">${slot.l}</span>
+      ${slot._player
+        ?`<div style="flex:1;min-width:0"><div class="rslot-name">${slot._player.name}</div><div class="rslot-team">${slot._player.team}</div></div>`
+        :`<div class="rslot-name" style="color:var(--text3);font-style:italic">—</div>`}
+    </div>`).join('')}
+    <div class="rslot-divider" style="margin-top:4px">Bench</div>
+    ${bench.map(slot=>`<div class="rslot bench">
+      <span class="rslot-pos" style="color:var(--text3)">${slot.l}</span>
+      ${slot._player
+        ?`<div style="flex:1;min-width:0"><div class="rslot-name">${slot._player.name} <span class="pbadge ${slot._player.pos}" style="margin-left:3px;font-size:8px">${slot._player.pos}</span></div><div class="rslot-team">${slot._player.team}</div></div>`
+        :`<div class="rslot-name" style="color:var(--text3);font-style:italic">—</div>`}
+    </div>`).join('')}
+  `;
+  // Clear _player refs
+  SLOTS.forEach(s=>delete s._player);
+
+  const projTotal=Math.round(myR.reduce((s,p)=>s+p.proj,0));
+  const buildPills=['QB','RB','WR','TE'].map(pos=>
+    `<span class="build-pill ${pos}" style="background:var(--${pos.toLowerCase()}bg);color:var(--${pos.toLowerCase()})">${myPc[pos]}${pos}</span>`
+  ).join('');
+
+  return`<div class="main">
+    <div class="left">
+      ${status}
+      <div class="po-row">${poHTML}</div>
+      <div class="ctrl-row">
+        <input type="text" placeholder="Search player or team..." id="srch" value="${S.search}" oninput="S.search=this.value;reList()">
+      </div>
+      <div class="ftabs">${['ALL','QB','RB','WR','TE'].map(f=>`<button class="ftab ${f}${S.filter===f?' on':''}" onclick="S.filter='${f}';reList()">${f}</button>`).join('')}</div>
+      <div class="plist" id="plist">${pListHTML()}</div>
+    </div>
+    <div class="center">
+      <div class="center-hdr">
+        <span style="font-size:12px;font-weight:600;font-family:var(--ffh)">Draft Board</span>
+        <span style="font-size:10px;color:var(--text2)">Each column = one team · Your picks highlighted</span>
+        <span style="font-size:10px;color:var(--text2)">${S.done?'Complete ✅':'Pick '+(S.pickNum+1)+'/'+TOTAL}</span>
+      </div>
+      ${S.aiRunning?`<div class="ai-bar">🤖 AI making picks<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>`:''}
+      <div class="board-wrap"><div class="board">${boardHTML}</div></div>
+    </div>
+    <div class="right">
+      <div class="rp-hdr">
+        <span class="rp-hdr-title">My Roster</span>
+        <span style="font-size:10px;color:var(--text2)">${myR.length}/20</span>
+      </div>
+      <div class="rp-body">${rosterHTML}</div>
+      <div class="sgrid">
+        <div class="sc"><div class="sc-l">Drafted</div><div class="sc-v" style="color:var(--rb)">${myR.length}</div></div>
+        <div class="sc"><div class="sc-l">Remaining</div><div class="sc-v">${20-myR.length}</div></div>
+        <div class="sc" style="grid-column:1/-1"><div class="sc-l">Build</div><div class="build-pills">${buildPills}</div></div>
+        <div class="sc"><div class="sc-l">Proj Pts</div><div class="sc-v" style="font-size:13px">${projTotal}</div></div>
+        <div class="sc"><div class="sc-l">Top Stack</div><div class="sc-v" style="font-size:11px;color:var(--wr)">${topStk?topStk[0]+' ×'+topStk[1]:'—'}</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function reList(){
+  const el=document.getElementById('plist');if(el)el.innerHTML=pListHTML();
+}
+function toggleDrafted(){
+  S.showDrafted=!S.showDrafted;
+  const b=document.getElementById('tog-btn');
+  b.textContent='👁 Drafted';b.classList.toggle('on',S.showDrafted);
+  reList();
+}
+
+function startDraft(slot){
+  // Assign funny team names — user gets slot name "YOU", others get puns
+  const shuffled=[...AI_NAMES].sort(()=>Math.random()-.5);
+  const names=[];
+  let aiIdx=0;
+  for(let i=0;i<TEAMS;i++){
+    names.push(i===(slot-1)?'YOU':shuffled[aiIdx++]||('Team '+(i+1)));
+  }
+  S={
+    started:true,userSlot:slot,pickNum:0,picks:[],drafted:new Set(),
+    rosters:Array.from({length:TEAMS},()=>[]),filter:'ALL',search:'',
+    aiRunning:false,done:false,showDrafted:false,teamNames:names,page:'draft'
+  };
+  document.getElementById('tog-btn').textContent='👁 Drafted';
+  document.getElementById('tog-btn').classList.remove('on');
+  navTo('draft');
+  if(!isMyTurn())setTimeout(runAI,300);
+}
+function resetDraft(){S.started=false;S.page='setup';render();}
+render();
+</script>
+</body>
+</html>
